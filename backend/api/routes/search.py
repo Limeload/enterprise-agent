@@ -39,7 +39,7 @@ async def search(
     all_results: list[dict] = []
 
     for source in allowed_sources:
-        connector = get_connector(source)
+        connector = get_connector(source, user_id=user.user_id)
         if connector:
             docs = await connector.search(req.query, entities={}, limit=req.limit)
             all_results.extend(docs)

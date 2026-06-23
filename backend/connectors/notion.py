@@ -12,8 +12,8 @@ from core.config import settings
 class NotionConnector(BaseConnector):
     name = "notion"
 
-    def __init__(self) -> None:
-        self._key = settings.notion_api_key
+    def __init__(self, token: str | None = None) -> None:
+        self._key = token or settings.notion_api_key
         self._headers = {
             "Authorization": f"Bearer {self._key}",
             "Notion-Version": "2022-06-28",

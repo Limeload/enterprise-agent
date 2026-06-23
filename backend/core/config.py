@@ -22,7 +22,15 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
+    supabase_jwt_secret: str = ""
     database_url: str = ""
+
+    # Frontend / OAuth redirects
+    frontend_url: str = "http://localhost:3000"
+    backend_url: str = "http://localhost:8000"
+
+    # Encryption key for storing per-user connector credentials at rest
+    connection_encryption_key: str = ""
 
     # LangSmith
     langchain_api_key: str = ""
@@ -55,6 +63,9 @@ class Settings(BaseSettings):
     zendesk_email: str = ""
     zendesk_api_token: str = ""
     composio_api_key: str = ""
+    # Maps connector source name -> Composio auth config id (created in the Composio
+    # dashboard per toolkit, e.g. {"github": "ac_xxx", "slack": "ac_yyy"})
+    composio_auth_config_ids: dict[str, str] = {}
 
     # Redis
     redis_url: str = "redis://localhost:6379"

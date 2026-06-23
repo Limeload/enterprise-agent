@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from api.deps import get_current_user
-from connectors.github import GitHubConnector
-from connectors.slack import SlackConnector
+from connectors import get_connector
 from core.security import User, check_action_permission
 
 router = APIRouter(prefix="/actions", tags=["actions"])
@@ -34,7 +33,9 @@ async def create_github_issue(
     user: User = Depends(get_current_user),
 ) -> dict:
     _require_write(user)
-    connector = GitHubConnector()
+    connector = get_connector("github", user_id=user.user_id)
+    if connector is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="GitHub is not connected")
     result = await connector.create_issue(repo=req.repo, title=req.title, body=req.body, labels=req.labels)
     return result
 
@@ -55,7 +56,9 @@ async def post_slack_message(
     user: User = Depends(get_current_user),
 ) -> dict:
     _require_write(user)
-    connector = SlackConnector()
+    connector = get_connector("slack", user_id=user.user_id)
+    if connector is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slack is not connected")
     result = await connector.post_message(channel=req.channel, text=req.text, thread_ts=req.thread_ts)
     return result
 

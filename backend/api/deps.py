@@ -4,7 +4,14 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from core.security import User, Role, decode_access_token
+from core.config import settings
+from core.security import (
+    User,
+    Role,
+    decode_access_token,
+    decode_supabase_token,
+    user_from_supabase_payload,
+)
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -12,10 +19,19 @@ bearer = HTTPBearer(auto_error=False)
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> User:
-    """Extract and validate the JWT bearer token, return the User."""
+    """Extract and validate the bearer token (Supabase session, or internal JWT), return the User."""
     if credentials is None:
-        # Dev convenience: return a mock admin when no token is provided
-        return User(user_id="dev-user", email="dev@company.com", role=Role.ADMIN)
+        if settings.app_env == "development":
+            # Dev convenience: return a mock admin when no token is provided
+            return User(user_id="dev-user", email="dev@company.com", role=Role.ADMIN)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials")
+
+    if settings.supabase_jwt_secret:
+        try:
+            payload = decode_supabase_token(credentials.credentials)
+            return user_from_supabase_payload(payload)
+        except ValueError:
+            pass
 
     try:
         payload = decode_access_token(credentials.credentials)

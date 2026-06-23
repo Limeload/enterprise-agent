@@ -3,13 +3,14 @@
 import { useState, useRef, useCallback } from "react";
 import { Send, Loader2 } from "lucide-react";
 import MessageList, { Message } from "./MessageList";
-import { v4 as uuidv4 } from "crypto";
+import { useAuth } from "@/lib/auth";
 
 function genId() {
   return Math.random().toString(36).slice(2);
 }
 
 export default function ChatInterface() {
+  const { accessToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sessionId] = useState(() => genId());
@@ -51,7 +52,10 @@ export default function ChatInterface() {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
           body: JSON.stringify({ message: query, session_id: sessionId }),
         });
 
@@ -133,7 +137,7 @@ export default function ChatInterface() {
         inputRef.current?.focus();
       }
     },
-    [input, isLoading, sessionId, updateLastAssistantMessage]
+    [input, isLoading, sessionId, accessToken, updateLastAssistantMessage]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

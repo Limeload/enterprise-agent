@@ -5,6 +5,18 @@ from connectors.base import BaseConnector
 
 _registry: dict[str, BaseConnector] = {}
 
+# Source names that support a real, per-user OAuth-connected implementation.
+PER_USER_CAPABLE_SOURCES = ("github", "notion", "slack", "hubspot")
+
+ALL_SOURCE_NAMES = (
+    "github", "notion", "slack", "hubspot",
+    "gmail", "google_drive", "confluence", "sharepoint", "gitlab", "bitbucket",
+    "jira", "linear", "azure_devops", "salesforce", "zendesk", "intercom",
+    "freshdesk", "google_calendar", "outlook_calendar", "asana", "monday",
+    "trello", "snowflake", "bigquery", "databricks", "redshift", "postgres",
+    "mysql", "microsoft_teams", "dropbox", "box", "onedrive",
+)
+
 
 def _build_registry() -> dict[str, BaseConnector]:
     from core.config import settings
@@ -62,7 +74,39 @@ def _build_registry() -> dict[str, BaseConnector]:
     return {k: v for k, v in reg.items() if v is not None}
 
 
-def get_connector(name: str) -> BaseConnector | None:
+_PER_USER_CONNECTOR_CLASSES: dict[str, type] = {}
+
+
+def _per_user_connector_classes() -> dict[str, type]:
+    global _PER_USER_CONNECTOR_CLASSES
+    if not _PER_USER_CONNECTOR_CLASSES:
+        from connectors.github import GitHubConnector
+        from connectors.notion import NotionConnector
+        from connectors.slack import SlackConnector
+        from connectors.hubspot import HubSpotConnector
+
+        _PER_USER_CONNECTOR_CLASSES = {
+            "github": GitHubConnector,
+            "notion": NotionConnector,
+            "slack": SlackConnector,
+            "hubspot": HubSpotConnector,
+        }
+    return _PER_USER_CONNECTOR_CLASSES
+
+
+def get_connector(name: str, user_id: str | None = None) -> BaseConnector | None:
+    """Resolve a connector. If `user_id` has a connected personal credential for `name`,
+    instantiate a fresh connector with that credential instead of the global env-based one."""
+    if user_id and name in PER_USER_CAPABLE_SOURCES:
+        from core.encryption import decrypt_secret
+        from db.connections import get_connection
+
+        record = get_connection(user_id, name)
+        if record and record.get("status") == "connected" and record.get("encrypted_credential"):
+            connector_cls = _per_user_connector_classes()[name]
+            token = decrypt_secret(record["encrypted_credential"])
+            return connector_cls(token=token)
+
     global _registry
     if not _registry:
         _registry = _build_registry()
@@ -70,7 +114,6 @@ def get_connector(name: str) -> BaseConnector | None:
 
 
 def list_connectors() -> list[str]:
-    global _registry
-    if not _registry:
-        _registry = _build_registry()
-    return list(_registry.keys())
+    """All known connector source names — used for the connectors settings UI
+    and as the default search scope, independent of whether credentials are configured."""
+    return list(ALL_SOURCE_NAMES)

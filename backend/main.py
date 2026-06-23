@@ -12,6 +12,8 @@ from observability.opentelemetry import configure_otel
 from api.routes.chat import router as chat_router
 from api.routes.search import router as search_router
 from api.routes.actions import router as actions_router
+from api.routes.auth import router as auth_router
+from api.routes.connectors import router as connectors_router
 
 structlog.configure(
     processors=[
@@ -51,6 +53,8 @@ app.add_middleware(
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(actions_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(connectors_router, prefix="/api/v1")
 
 
 @app.get("/health")

@@ -9,11 +9,15 @@ const API_URL = process.env.API_URL ?? "http://localhost:8000";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  const forwardedAuth = req.headers.get("authorization");
+
   const upstream = await fetch(`${API_URL}/api/v1/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(process.env.INTERNAL_API_TOKEN
+      ...(forwardedAuth
+        ? { Authorization: forwardedAuth }
+        : process.env.INTERNAL_API_TOKEN
         ? { Authorization: `Bearer ${process.env.INTERNAL_API_TOKEN}` }
         : {}),
     },

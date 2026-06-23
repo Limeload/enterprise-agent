@@ -94,6 +94,36 @@ def decode_access_token(token: str) -> dict[str, Any]:
         raise ValueError("Invalid or expired token") from exc
 
 
+def decode_supabase_token(token: str) -> dict[str, Any]:
+    """Verify a Supabase Auth access token (HS256, signed with the project JWT secret)."""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+        return payload
+    except JWTError as exc:
+        raise ValueError("Invalid or expired Supabase token") from exc
+
+
+def user_from_supabase_payload(payload: dict[str, Any]) -> User:
+    user_metadata = payload.get("user_metadata", {}) or {}
+    role = user_metadata.get("role", "viewer")
+    try:
+        role_enum = Role(role)
+    except ValueError:
+        role_enum = Role.VIEWER
+    return User(
+        user_id=payload.get("sub", ""),
+        email=payload.get("email", ""),
+        role=role_enum,
+        department=user_metadata.get("department"),
+        extra_permissions=user_metadata.get("extra_permissions", []),
+    )
+
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 

@@ -12,8 +12,8 @@ from core.config import settings
 class GitHubConnector(BaseConnector):
     name = "github"
 
-    def __init__(self) -> None:
-        self._token = settings.github_token
+    def __init__(self, token: str | None = None) -> None:
+        self._token = token or settings.github_token
         self._org = settings.github_org
         self._headers = {
             "Authorization": f"Bearer {self._token}",

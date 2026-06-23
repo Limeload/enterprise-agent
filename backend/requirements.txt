@@ -43,9 +43,8 @@ opentelemetry-exporter-otlp==1.29.0
 opentelemetry-instrumentation-fastapi==0.50b0
 opentelemetry-instrumentation-httpx==0.50b0
 
-# Connectors — Composio
-composio-core==0.6.3
-composio-langchain==0.6.3
+# Connectors — Composio (hosted OAuth for per-user connector connections)
+composio==1.1.5
 
 # Data processing
 pydantic==2.10.3
