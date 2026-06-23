@@ -1,0 +1,31 @@
+"""FastAPI dependency injection helpers."""
+from __future__ import annotations
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from core.security import User, Role, decode_access_token
+
+bearer = HTTPBearer(auto_error=False)
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> User:
+    """Extract and validate the JWT bearer token, return the User."""
+    if credentials is None:
+        # Dev convenience: return a mock admin when no token is provided
+        return User(user_id="dev-user", email="dev@company.com", role=Role.ADMIN)
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    return User(
+        user_id=payload.get("sub", ""),
+        email=payload.get("email", ""),
+        role=Role(payload.get("role", "viewer")),
+        department=payload.get("department"),
+        extra_permissions=payload.get("extra_permissions", []),
+    )
