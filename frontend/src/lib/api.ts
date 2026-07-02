@@ -1,3 +1,5 @@
+import type { LocalSession } from "@/lib/auth";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface ChatMessage {
@@ -34,33 +36,60 @@ function authHeaders(accessToken?: string | null): Record<string, string> {
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
+async function post<T>(path: string, body: unknown, accessToken?: string | null): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(accessToken) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = text;
+    try { msg = JSON.parse(text).detail ?? text; } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export async function login(email: string, password: string): Promise<LocalSession> {
+  return post("/api/backend/auth/login", { email, password });
+}
+
+export async function signup(email: string, password: string): Promise<LocalSession> {
+  return post("/api/backend/auth/signup", { email, password });
+}
+
+// ---------------------------------------------------------------------------
+// Chat
+// ---------------------------------------------------------------------------
+
 export async function sendMessage(
   message: string,
   sessionId?: string,
   accessToken?: string | null
 ): Promise<ChatResponse> {
-  const res = await fetch(`${BASE}/api/backend/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders(accessToken) },
-    body: JSON.stringify({ message, session_id: sessionId }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return post("/api/backend/chat", { message, session_id: sessionId }, accessToken);
 }
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
 
 export async function search(
   query: string,
   sources?: string[],
   accessToken?: string | null
 ): Promise<SearchResult[]> {
-  const res = await fetch(`${BASE}/api/backend/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders(accessToken) },
-    body: JSON.stringify({ query, sources }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return post("/api/backend/search", { query, sources }, accessToken);
 }
+
+// ---------------------------------------------------------------------------
+// Connectors
+// ---------------------------------------------------------------------------
 
 export interface ConnectorStatus {
   source: string;
@@ -75,6 +104,14 @@ export async function getConnectorStatuses(accessToken: string): Promise<Connect
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function submitApiKey(
+  source: string,
+  apiKey: string,
+  accessToken: string
+): Promise<ConnectorStatus> {
+  return post(`/api/backend/connectors/${source}/api-key`, { api_key: apiKey }, accessToken);
 }
 
 export async function startConnectorConnect(

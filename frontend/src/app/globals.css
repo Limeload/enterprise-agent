@@ -4,34 +4,43 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
-    --border: 214 32% 91%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --font-geist-sans: "Geist", system-ui, sans-serif;
+    --font-geist-mono: "Geist Mono", monospace;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   html {
-    font-family: "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply bg-white text-slate-900;
+    @apply bg-white text-ink-950;
   }
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { @apply bg-transparent; }
-::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-ink-300; }
 
-/* SSE typing animation */
+/* Typing cursor */
+.cursor-blink {
+  animation: blink 0.9s step-start infinite;
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
-.cursor-blink {
-  animation: blink 1s step-start infinite;
+
+/* Smooth selection */
+::selection {
+  background-color: #0A0A0A;
+  color: white;
 }

@@ -2,15 +2,17 @@
 
 import { ExternalLink } from "lucide-react";
 
-const SOURCE_COLORS: Record<string, string> = {
-  github:    "bg-slate-800 text-white",
-  notion:    "bg-black text-white",
-  slack:     "bg-purple-600 text-white",
-  hubspot:   "bg-orange-500 text-white",
-  jira:      "bg-blue-600 text-white",
-  confluence:"bg-blue-500 text-white",
-  gmail:     "bg-red-500 text-white",
-  default:   "bg-slate-500 text-white",
+const SOURCE_STYLE: Record<string, { dot: string; label: string }> = {
+  github:     { dot: "bg-ink-900",      label: "GitHub" },
+  notion:     { dot: "bg-ink-950",      label: "Notion" },
+  slack:      { dot: "bg-purple-500",   label: "Slack" },
+  hubspot:    { dot: "bg-orange-500",   label: "HubSpot" },
+  jira:       { dot: "bg-blue-600",     label: "Jira" },
+  confluence: { dot: "bg-blue-500",     label: "Confluence" },
+  gmail:      { dot: "bg-red-500",      label: "Gmail" },
+  linear:     { dot: "bg-violet-600",   label: "Linear" },
+  salesforce: { dot: "bg-sky-600",      label: "Salesforce" },
+  default:    { dot: "bg-ink-400",      label: "" },
 };
 
 export interface Citation {
@@ -21,33 +23,36 @@ export interface Citation {
 }
 
 export default function SourceCitation({ citation }: { citation: Citation }) {
-  const chip = SOURCE_COLORS[citation.source] ?? SOURCE_COLORS.default;
+  const style = SOURCE_STYLE[citation.source] ?? SOURCE_STYLE.default;
 
   return (
-    <div className="rounded-lg border border-slate-100 bg-white p-3 shadow-sm hover:shadow transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${chip}`}>
-              {citation.source}
-            </span>
-          </div>
-          <p className="text-sm font-medium text-slate-800 truncate">{citation.title}</p>
-          {citation.excerpt && (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-2">{citation.excerpt}</p>
-          )}
+    <a
+      href={citation.url || undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group flex items-start gap-3 rounded-xl border border-ink-100 bg-white p-3 transition-all hover:border-ink-200 hover:shadow-sm ${!citation.url ? "pointer-events-none" : ""}`}
+    >
+      {/* Coloured source dot */}
+      <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+            {style.label || citation.source}
+          </span>
         </div>
-        {citation.url && (
-          <a
-            href={citation.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 text-slate-400 hover:text-brand-600 transition-colors"
-          >
-            <ExternalLink size={14} />
-          </a>
+        <p className="text-[13px] font-medium text-ink-900 truncate leading-snug">{citation.title}</p>
+        {citation.excerpt && (
+          <p className="mt-1 text-[12px] leading-snug text-ink-400 line-clamp-2">{citation.excerpt}</p>
         )}
       </div>
-    </div>
+
+      {citation.url && (
+        <ExternalLink
+          size={12}
+          className="mt-0.5 shrink-0 text-ink-200 group-hover:text-ink-500 transition-colors"
+        />
+      )}
+    </a>
   );
 }

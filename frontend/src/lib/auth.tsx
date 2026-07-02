@@ -1,55 +1,67 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+
+export interface LocalSession {
+  access_token: string;
+  user_id: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextValue {
-  session: Session | null;
-  user: User | null;
+  session: LocalSession | null;
   loading: boolean;
   accessToken: string | null;
   signOut: () => Promise<void>;
+  setSession: (s: LocalSession | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
-  user: null,
   loading: true,
   accessToken: null,
   signOut: async () => {},
+  setSession: () => {},
 });
 
+const SESSION_KEY = "ea_session";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSessionState] = useState<LocalSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    try {
+      const stored = localStorage.getItem(SESSION_KEY);
+      if (stored) setSessionState(JSON.parse(stored));
+    } catch {
+      // ignore
+    }
+    setLoading(false);
+  }, []);
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
-
-    return () => listener.subscription.unsubscribe();
+  const setSession = useCallback((s: LocalSession | null) => {
+    setSessionState(s);
+    if (s) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
     setSession(null);
-  }, []);
+  }, [setSession]);
 
   return (
     <AuthContext.Provider
       value={{
         session,
-        user: session?.user ?? null,
         loading,
         accessToken: session?.access_token ?? null,
         signOut,
+        setSession,
       }}
     >
       {children}

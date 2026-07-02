@@ -1,61 +1,60 @@
 # Web framework
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-python-multipart==0.0.12
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
 
 # Agent orchestration
-langgraph==0.2.53
-langchain==0.3.12
-langchain-anthropic==0.3.3
-langchain-openai==0.2.12
-langchain-community==0.3.12
-langsmith==0.1.147
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-anthropic>=0.3.3
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+langsmith>=0.1.0
 
 # LLM SDKs
-anthropic==0.40.0
-openai==1.57.4
-google-generativeai==0.8.3
-groq==0.12.0
+anthropic>=0.41.0
+openai>=1.57.0
+google-generativeai>=0.8.0
+groq>=0.12.0
 
 # Retrieval / RAG
-llama-index==0.12.0
-llama-index-vector-stores-supabase==0.2.1
+llama-index>=0.11.0
+llama-index-vector-stores-supabase>=0.2.0
 
 # Database
-supabase==2.10.0
-asyncpg==0.30.0
-sqlalchemy[asyncio]==2.0.36
-alembic==1.14.0
-pgvector==0.3.5
+supabase>=2.10.0
+asyncpg>=0.29.0
+sqlalchemy[asyncio]>=2.0.0
+alembic>=1.14.0
+pgvector>=0.3.0
 
 # HTTP clients
-httpx==0.28.1
-aiohttp==3.11.10
+httpx>=0.27.0
+aiohttp>=3.11.0
 
 # Auth / Security
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-dotenv==1.0.1
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-dotenv>=1.0.0
 
 # Observability
-opentelemetry-sdk==1.29.0
-opentelemetry-exporter-otlp==1.29.0
-opentelemetry-instrumentation-fastapi==0.50b0
-opentelemetry-instrumentation-httpx==0.50b0
+opentelemetry-sdk>=1.29.0
+opentelemetry-exporter-otlp>=1.29.0
+opentelemetry-instrumentation-fastapi>=0.50b0
+opentelemetry-instrumentation-httpx>=0.50b0
 
-# Connectors — Composio (hosted OAuth for per-user connector connections)
-composio==1.1.5
+# Connectors
+composio>=1.0.0rc10
 
 # Data processing
-pydantic==2.10.3
-pydantic-settings==2.6.1
-tenacity==9.0.0
-structlog==24.4.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+tenacity>=9.0.0
+structlog>=24.4.0
 
 # Caching
-redis==5.2.1
+redis>=5.2.0
 
 # Dev / test
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.28.1
+pytest>=8.3.0
+pytest-asyncio>=0.24.0

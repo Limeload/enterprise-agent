@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import MessageList, { Message } from "./MessageList";
 import { useAuth } from "@/lib/auth";
 
@@ -17,7 +17,7 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const updateLastAssistantMessage = useCallback((updater: (msg: Message) => Message) => {
+  const updateLastAssistant = useCallback((updater: (msg: Message) => Message) => {
     setMessages((prev) => {
       const idx = [...prev].reverse().findIndex((m) => m.role === "assistant");
       if (idx === -1) return prev;
@@ -28,11 +28,9 @@ export default function ChatInterface() {
     });
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const query = input.trim();
-      if (!query || isLoading) return;
+  const sendQuery = useCallback(
+    async (query: string) => {
+      if (!query.trim() || isLoading) return;
 
       setInput("");
       setIsLoading(true);
@@ -59,21 +57,16 @@ export default function ChatInterface() {
           body: JSON.stringify({ message: query, session_id: sessionId }),
         });
 
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
+        if (!res.ok) throw new Error(await res.text());
 
         const reader = res.body?.getReader();
         const decoder = new TextDecoder();
-
         if (!reader) throw new Error("No response stream");
 
         let buffer = "";
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
@@ -82,97 +75,94 @@ export default function ChatInterface() {
             if (!line.startsWith("data: ")) continue;
             const raw = line.slice(6).trim();
             if (!raw) continue;
-
             try {
               const event = JSON.parse(raw);
-
               if (event.type === "node_start") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  activeNode: event.node,
-                  completedNodes: msg.completedNodes ?? [],
-                }));
+                updateLastAssistant((m) => ({ ...m, activeNode: event.node, completedNodes: m.completedNodes ?? [] }));
               } else if (event.type === "node_end") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  activeNode: null,
-                  completedNodes: [...(msg.completedNodes ?? []), event.node],
-                }));
+                updateLastAssistant((m) => ({ ...m, activeNode: null, completedNodes: [...(m.completedNodes ?? []), event.node] }));
               } else if (event.type === "answer_chunk") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  content: msg.content + (event.content ?? ""),
-                }));
+                updateLastAssistant((m) => ({ ...m, content: m.content + (event.content ?? "") }));
               } else if (event.type === "done") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  isStreaming: false,
-                  activeNode: null,
-                }));
+                updateLastAssistant((m) => ({ ...m, isStreaming: false, activeNode: null }));
               } else if (event.type === "citations") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  citations: event.citations ?? [],
-                }));
+                updateLastAssistant((m) => ({ ...m, citations: event.citations ?? [] }));
               } else if (event.type === "metadata") {
-                updateLastAssistantMessage((msg) => ({
-                  ...msg,
-                  intent: event.intent,
-                  sources: event.sources_used,
-                }));
+                updateLastAssistant((m) => ({ ...m, intent: event.intent, sources: event.sources_used }));
               }
-            } catch {
-              // non-JSON line — skip
-            }
+            } catch { /* non-JSON line */ }
           }
         }
       } catch (err) {
-        updateLastAssistantMessage((msg) => ({
-          ...msg,
-          content: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        updateLastAssistant((m) => ({
+          ...m,
+          content: err instanceof Error ? err.message : "Something went wrong. Please try again.",
           isStreaming: false,
         }));
       } finally {
         setIsLoading(false);
-        inputRef.current?.focus();
+        setTimeout(() => inputRef.current?.focus(), 50);
       }
     },
-    [input, isLoading, sessionId, accessToken, updateLastAssistantMessage]
+    [isLoading, sessionId, accessToken, updateLastAssistant]
+  );
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      sendQuery(input.trim());
+    },
+    [input, sendQuery]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent);
+      sendQuery(input.trim());
     }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    // Auto-resize
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
   };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <MessageList messages={messages} />
+      <MessageList messages={messages} onPrompt={(q) => sendQuery(q)} />
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-end gap-3 border-t border-slate-200 bg-white px-4 py-3"
-      >
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about PRs, Slack threads, policies, customers..."
-          rows={1}
-          className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100 transition-all"
-          style={{ maxHeight: "120px", overflowY: "auto" }}
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition-all hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
+      {/* ── Input bar ── */}
+      <div className="shrink-0 border-t border-ink-100 bg-white px-4 py-3 sm:px-8 sm:py-4">
+        <form
+          onSubmit={handleSubmit}
+          className="mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 focus-within:border-ink-400 focus-within:bg-white focus-within:shadow-sm transition-all"
         >
-          {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-        </button>
-      </form>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about your company knowledge…"
+            rows={1}
+            className="flex-1 resize-none bg-transparent text-[14px] text-ink-950 placeholder:text-ink-400 focus:outline-none leading-relaxed"
+            style={{ maxHeight: "160px" }}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || isLoading}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink-950 text-white transition-all hover:bg-ink-800 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {isLoading
+              ? <Loader2 size={14} className="animate-spin" />
+              : <ArrowUp size={14} />}
+          </button>
+        </form>
+        <p className="mt-2 text-center text-[11px] text-ink-300">
+          Press <kbd className="rounded border border-ink-200 px-1 py-px font-mono text-[10px]">↵</kbd> to send · <kbd className="rounded border border-ink-200 px-1 py-px font-mono text-[10px]">⇧↵</kbd> for new line
+        </p>
+      </div>
     </div>
   );
 }

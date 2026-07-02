@@ -19,7 +19,6 @@ ALL_SOURCE_NAMES = (
 
 
 def _build_registry() -> dict[str, BaseConnector]:
-    from core.config import settings
     from connectors.github import GitHubConnector
     from connectors.notion import NotionConnector
     from connectors.slack import SlackConnector
@@ -35,11 +34,12 @@ def _build_registry() -> dict[str, BaseConnector]:
     )
 
     reg: dict[str, BaseConnector] = {
-        # Real connectors
-        "github":          GitHubConnector() if settings.github_token else None,
-        "notion":          NotionConnector() if settings.notion_api_key else None,
-        "slack":           SlackConnector() if settings.slack_bot_token else None,
-        "hubspot":         HubSpotConnector() if settings.hubspot_access_token else None,
+        # Real connectors — activated only via per-user credentials connected through the UI.
+        # Global env-var tokens are intentionally not used here; users connect their own accounts.
+        "github":          None,
+        "notion":          None,
+        "slack":           None,
+        "hubspot":         None,
         # Stubs — replace with real implementations as you add credentials
         "gmail":           GmailConnector(),
         "google_drive":    GoogleDriveConnector(),

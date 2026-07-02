@@ -8,7 +8,15 @@ from core.config import settings
 _client: Client | None = None
 
 
-def get_supabase() -> Client:
+def is_supabase_configured() -> bool:
+    url = settings.supabase_url or ""
+    key = settings.supabase_service_role_key or ""
+    return bool(url and not url.startswith("https://placeholder") and key)
+
+
+def get_supabase() -> Client | None:
+    if not is_supabase_configured():
+        return None
     global _client
     if _client is None:
         _client = create_client(settings.supabase_url, settings.supabase_service_role_key)

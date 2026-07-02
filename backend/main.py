@@ -30,6 +30,11 @@ log = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     configure_langsmith()
     configure_otel(app)
+    from db.supabase import is_supabase_configured
+    import db.local_store as local_store
+    if not is_supabase_configured():
+        local_store.init_db()
+        log.info("local_sqlite_store_initialized")
     log.info("enterprise_agent_started", env=settings.app_env, model=settings.llm_model)
     yield
     log.info("enterprise_agent_shutdown")
@@ -59,7 +64,7 @@ app.include_router(connectors_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "env": settings.app_env, "model": settings.llm_model}
+    return {"status": "healthy", "env": settings.app_env, "model": settings.llm_model}
 
 
 @app.get("/")
