@@ -1,31 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getSessionCookie } from "better-auth/cookies"
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/pricing", "/api/auth", "/api/billing/webhook"]
+const isPublic = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/signup(.*)",
+  "/pricing",
+  "/api/billing/webhook",
+])
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Always allow public paths and static files
-  if (
-    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/braincache")
-  ) {
-    return NextResponse.next()
-  }
-
-  const sessionCookie = getSessionCookie(request)
-  if (!sessionCookie) {
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  return NextResponse.next()
-}
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublic(req)) await auth.protect()
+})
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 }
