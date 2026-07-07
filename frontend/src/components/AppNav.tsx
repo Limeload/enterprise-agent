@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { MessageSquare, Plug2, BarChart3, CreditCard, Settings, LogOut } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { MessageSquare, Plug2, BarChart3, CreditCard, Settings } from "lucide-react"
+import { useUser, UserButton } from "@clerk/nextjs"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
-import { useSession, signOut } from "@/lib/auth-client"
 
 const NAV = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
@@ -16,12 +16,10 @@ const NAV = [
 
 export default function AppNav() {
   const pathname = usePathname()
-  const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useUser()
 
-  const email = session?.user.email ?? ""
-  const name = session?.user.name ?? email
-  const initials = (name || email || "BC").slice(0, 2).toUpperCase()
+  const name = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? ""
+  const email = user?.primaryEmailAddress?.emailAddress ?? ""
 
   return (
     <aside className="flex h-screen w-[232px] shrink-0 flex-col border-r border-surface-border bg-surface-raised">
@@ -53,20 +51,13 @@ export default function AppNav() {
 
       <div className="border-t border-surface-border p-3">
         <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bc-gradient text-[10px] font-semibold text-white">
-            {initials}
-          </div>
+          <UserButton
+            appearance={{ elements: { avatarBox: "h-7 w-7" } }}
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] font-medium text-copy-primary">{name}</p>
             <p className="truncate text-[10px] text-copy-muted">{email}</p>
           </div>
-          <button
-            onClick={() => signOut().then(() => router.replace("/"))}
-            title="Sign out"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-copy-disabled hover:bg-surface-over hover:text-cache-err transition-all"
-          >
-            <LogOut size={13} />
-          </button>
         </div>
       </div>
     </aside>

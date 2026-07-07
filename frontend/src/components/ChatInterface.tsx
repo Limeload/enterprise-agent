@@ -3,14 +3,12 @@
 import { useState, useRef, useCallback } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
 import MessageList, { Message } from "./MessageList";
-import { useAuth } from "@/lib/auth";
-
 function genId() {
   return Math.random().toString(36).slice(2);
 }
 
 export default function ChatInterface() {
-  const { accessToken } = useAuth();
+  const accessToken = null; // Clerk handles auth via middleware
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sessionId] = useState(() => genId());

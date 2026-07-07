@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Check, Loader2 } from "lucide-react"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
-import { useSession } from "@/lib/auth-client"
+import { useUser } from "@clerk/nextjs"
 
 const USE_CASES = [
   { id: "engineering", label: "Engineering", desc: "GitHub, Jira, Linear, Confluence" },
@@ -24,9 +24,9 @@ const CONNECTORS = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user: session } = useUser()
   const [step, setStep] = useState(0)
-  const [workspaceName, setWorkspaceName] = useState(session?.user.name ? `${session.user.name}'s Workspace` : "My Workspace")
+  const [workspaceName, setWorkspaceName] = useState(session?.fullName ? `${session.fullName}'s Workspace` : "My Workspace")
   const [useCase, setUseCase] = useState("")
   const [saving, setSaving] = useState(false)
 

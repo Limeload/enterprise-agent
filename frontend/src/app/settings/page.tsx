@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, UserPlus, Trash2, Shield, Clock } from "lucide-react"
 import AppNav from "@/components/AppNav"
-import { useSession } from "@/lib/auth-client"
+import { useUser } from "@clerk/nextjs"
 
 interface Member {
   id: string
@@ -42,7 +42,7 @@ function relativeTime(iso: string) {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
+  const { user: session, isLoaded } = useUser()
   const [members, setMembers] = useState<Member[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,8 +53,8 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<"members" | "audit">("members")
 
   useEffect(() => {
-    if (!isPending && !session) router.replace("/login")
-  }, [session, isPending, router])
+    if (isLoaded && !session) router.replace("/login")
+  }, [session, isLoaded, router])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -101,7 +101,7 @@ export default function SettingsPage() {
     await load()
   }
 
-  if (isPending || !session) return null
+  if (!isLoaded || !session) return null
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-copy-muted">{relativeTime(m.createdAt)}</span>
-                      {m.role !== "OWNER" && m.user.id !== session.user.id && (
+                      {m.role !== "OWNER" && m.user.id !== session.id && (
                         <button
                           onClick={() => handleRemove(m.id)}
                           className="flex h-6 w-6 items-center justify-center rounded text-copy-disabled hover:bg-cache-err/10 hover:text-cache-err transition-all"

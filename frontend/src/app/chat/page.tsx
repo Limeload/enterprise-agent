@@ -1,23 +1,12 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { AlertTriangle } from "lucide-react"
 import ChatInterface from "@/components/ChatInterface"
 import AppNav from "@/components/AppNav"
-import { useSession } from "@/lib/auth-client"
 import { useCredits } from "@/lib/hooks"
 
 export default function ChatPage() {
-  const router = useRouter()
-  const { data: session, isPending } = useSession()
   const { credits } = useCredits()
-
-  useEffect(() => {
-    if (!isPending && !session) router.replace("/login")
-  }, [session, isPending, router])
-
-  if (isPending || !session) return null
 
   const pct = credits ? Math.round((credits.balance / credits.monthlyLimit) * 100) : 100
   const lowCredits = credits && pct < 20
@@ -27,7 +16,6 @@ export default function ChatPage() {
       <AppNav />
 
       <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Low-credit warning */}
         {lowCredits && (
           <div className="flex shrink-0 items-center gap-2 border-b border-cache-err/20 bg-cache-err/8 px-5 py-2 text-[12px] text-cache-err">
             <AlertTriangle size={13} />
@@ -38,7 +26,6 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Credit bar in header */}
         <div className="flex shrink-0 items-center justify-between border-b border-surface-border bg-surface-raised px-5 py-2.5">
           <p className="text-[12px] text-copy-muted">
             <span className="font-medium text-copy-primary">{credits?.balance ?? "—"}</span> / {credits?.monthlyLimit ?? "—"} credits

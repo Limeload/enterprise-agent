@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowRight, Check, Loader2 } from "lucide-react"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
-import { useSession } from "@/lib/auth-client"
+import { useUser } from "@clerk/nextjs"
 
 const TIERS = [
   {
@@ -83,7 +83,7 @@ const TIERS = [
 ]
 
 export default function PricingPage() {
-  const { data: session } = useSession()
+  const { user: session } = useUser()
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleUpgrade = async (key: string) => {
