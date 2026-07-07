@@ -89,7 +89,7 @@ create table if not exists users (
     created_at  timestamptz default now()
 );
 
--- Per-user connector connections (OAuth via Composio, or pasted tokens)
+-- Per-user connector connections (OAuth via Composio)
 create table if not exists user_connections (
     id                      uuid primary key default gen_random_uuid(),
     user_id                 text not null,

@@ -12,8 +12,6 @@ from core.security import User, check_source_permission
 from db import connections as connections_db
 from integrations import composio_client
 
-from core.encryption import encrypt_secret
-
 router = APIRouter(prefix="/connectors", tags=["connectors"])
 
 
@@ -89,32 +87,6 @@ async def connector_callback(source: str, connectedAccountId: str = Query(...)) 
         )
 
     return RedirectResponse(url=f"{settings.frontend_url}/connectors?source={source}&status={status_value}")
-
-
-class ApiKeyRequest(BaseModel):
-    api_key: str
-
-
-@router.post("/{source}/api-key", response_model=ConnectorStatus)
-async def connect_via_api_key(
-    source: str,
-    req: ApiKeyRequest,
-    user: User = Depends(get_current_user),
-) -> ConnectorStatus:
-    """Store a user-supplied API key / token for a connector (no OAuth required)."""
-    if not check_source_permission(user, source):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not permitted for this role")
-    if source not in list_connectors():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown connector '{source}'")
-
-    encrypted = encrypt_secret(req.api_key.strip())
-    connections_db.upsert_connection(
-        user_id=user.user_id,
-        source=source,
-        status="connected",
-        encrypted_credential=encrypted,
-    )
-    return ConnectorStatus(source=source, accessible=True, connected=True, status="connected")
 
 
 @router.delete("/{source}")
