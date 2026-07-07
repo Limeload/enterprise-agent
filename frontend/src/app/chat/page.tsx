@@ -1,58 +1,58 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { LogOut, Plug2 } from "lucide-react";
-import ChatInterface from "@/components/ChatInterface";
-import BrainCacheLogo from "@/components/BrainCacheLogo";
-import { useAuth } from "@/lib/auth";
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { AlertTriangle } from "lucide-react"
+import ChatInterface from "@/components/ChatInterface"
+import AppNav from "@/components/AppNav"
+import { useSession } from "@/lib/auth-client"
+import { useCredits } from "@/lib/hooks"
 
 export default function ChatPage() {
-  const router = useRouter();
-  const { session, loading, signOut } = useAuth();
+  const router = useRouter()
+  const { data: session, isPending } = useSession()
+  const { credits } = useCredits()
 
   useEffect(() => {
-    if (!loading && !session) router.replace("/login");
-  }, [session, loading, router]);
+    if (!isPending && !session) router.replace("/login")
+  }, [session, isPending, router])
 
-  if (loading || !session) return null;
+  if (isPending || !session) return null
 
-  const email = session.email;
-  const initials = email ? email.slice(0, 2).toUpperCase() : "BC";
+  const pct = credits ? Math.round((credits.balance / credits.monthlyLimit) * 100) : 100
+  const lowCredits = credits && pct < 20
 
   return (
-    <main className="flex h-screen flex-col bg-surface-base">
-      {/* ── Top navigation ── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-surface-border bg-surface-raised px-5 py-3">
-        <BrainCacheLogo />
+    <div className="flex h-screen overflow-hidden">
+      <AppNav />
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/connectors"
-            className="flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-over px-3 py-1.5 text-[12px] font-medium text-copy-secondary hover:border-bc-accent/40 hover:text-copy-primary transition-all"
-          >
-            <Plug2 size={12} />
-            Connectors
-          </Link>
-
-          <div
-            className="flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-over pl-2 pr-1.5 py-1 cursor-pointer hover:border-bc-accent/40 transition-all group"
-            onClick={() => signOut().then(() => router.replace("/"))}
-          >
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-bc-gradient text-[9px] font-semibold text-white">
-              {initials}
-            </div>
-            <span className="hidden sm:block text-[12px] font-medium text-copy-secondary max-w-[140px] truncate group-hover:text-copy-primary transition-colors">
-              {email}
+      <main className="flex flex-1 flex-col overflow-hidden">
+        {/* Low-credit warning */}
+        {lowCredits && (
+          <div className="flex shrink-0 items-center gap-2 border-b border-cache-err/20 bg-cache-err/8 px-5 py-2 text-[12px] text-cache-err">
+            <AlertTriangle size={13} />
+            <span>
+              Only <strong>{credits!.balance}</strong> credits remaining.{" "}
+              <a href="/billing" className="underline underline-offset-2 hover:opacity-80">Upgrade to continue.</a>
             </span>
-            <LogOut size={11} className="text-copy-disabled group-hover:text-copy-secondary transition-colors ml-0.5" />
+          </div>
+        )}
+
+        {/* Credit bar in header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-surface-border bg-surface-raised px-5 py-2.5">
+          <p className="text-[12px] text-copy-muted">
+            <span className="font-medium text-copy-primary">{credits?.balance ?? "—"}</span> / {credits?.monthlyLimit ?? "—"} credits
+          </p>
+          <div className="h-1.5 w-32 overflow-hidden rounded-full bg-surface-over">
+            <div
+              className={`h-full rounded-full transition-all ${pct > 50 ? "bg-cache-hit" : pct >= 20 ? "bg-cache-miss" : "bg-cache-err"}`}
+              style={{ width: `${Math.min(pct, 100)}%` }}
+            />
           </div>
         </div>
-      </header>
 
-      {/* ── Chat area ── */}
-      <ChatInterface />
-    </main>
-  );
+        <ChatInterface />
+      </main>
+    </div>
+  )
 }
