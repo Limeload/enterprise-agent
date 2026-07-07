@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { getUserWorkspace } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
 import type { Role } from "@prisma/client"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ members: [] })
 
   const members = await prisma.workspaceMember.findMany({
@@ -30,13 +29,11 @@ export async function GET() {
   })
 }
 
-// Invite a member by email. If the user already exists they are added directly;
-// otherwise this records an audit entry for a pending invite.
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
 
   const { email, role } = await request.json()
@@ -48,9 +45,7 @@ export async function POST(request: NextRequest) {
 
   if (existingUser) {
     await prisma.workspaceMember.upsert({
-      where: {
-        workspaceId_userId: { workspaceId: workspace.id, userId: existingUser.id },
-      },
+      where: { workspaceId_userId: { workspaceId: workspace.id, userId: existingUser.id } },
       create: { workspaceId: workspace.id, userId: existingUser.id, role: targetRole },
       update: { role: targetRole },
     })
@@ -59,7 +54,7 @@ export async function POST(request: NextRequest) {
   await prisma.auditLog.create({
     data: {
       workspaceId: workspace.id,
-      userId: session.user.id,
+      userId,
       action: existingUser ? "member.added" : "member.invited",
       target: email,
       metadata: { role: targetRole },

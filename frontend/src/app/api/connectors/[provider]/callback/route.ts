@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { CONNECTOR_CONFIG } from "@/lib/connectors/config"
 import { getUserWorkspace } from "@/lib/session"
 import { encrypt } from "@/lib/encryption"
@@ -14,9 +13,7 @@ export async function GET(
   const { provider } = await params
   const providerKey = provider.toUpperCase()
   const config = CONNECTOR_CONFIG[providerKey]
-  if (!config) {
-    return NextResponse.redirect(new URL("/integrations?error=unknown_provider", request.url))
-  }
+  if (!config) return NextResponse.redirect(new URL("/integrations?error=unknown_provider", request.url))
 
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
@@ -27,14 +24,14 @@ export async function GET(
     return NextResponse.redirect(new URL("/integrations?error=invalid_state", request.url))
   }
 
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.redirect(new URL("/login", request.url))
+  const { userId } = await auth()
+  if (!userId) return NextResponse.redirect(new URL("/login", request.url))
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.redirect(new URL("/onboarding", request.url))
 
   try {
-    // Exchange code for tokens
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
     const tokenRes = await fetch(config.tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
@@ -42,7 +39,7 @@ export async function GET(
         code,
         client_id: config.clientId,
         client_secret: config.clientSecret,
-        redirect_uri: `${process.env.BETTER_AUTH_URL}/api/connectors/${provider}/callback`,
+        redirect_uri: `${appUrl}/api/connectors/${provider}/callback`,
         grant_type: "authorization_code",
       }),
     })
@@ -52,21 +49,13 @@ export async function GET(
       throw new Error(tokens.error_description ?? "Token exchange failed")
     }
 
-    const expiresAt = tokens.expires_in
-      ? new Date(Date.now() + tokens.expires_in * 1000)
-      : null
+    const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
 
-    // Store encrypted tokens in DB
     await prisma.connector.upsert({
-      where: {
-        workspaceId_provider: {
-          workspaceId: workspace.id,
-          provider: providerKey as ConnectorProvider,
-        },
-      },
+      where: { workspaceId_provider: { workspaceId: workspace.id, provider: providerKey as ConnectorProvider } },
       create: {
         workspaceId: workspace.id,
-        userId: session.user.id,
+        userId,
         provider: providerKey as ConnectorProvider,
         status: "CONNECTED",
         scopes: config.scopes,
@@ -83,19 +72,11 @@ export async function GET(
       },
     })
 
-    // Audit log
     await prisma.auditLog.create({
-      data: {
-        workspaceId: workspace.id,
-        userId: session.user.id,
-        action: "connector.connected",
-        target: providerKey,
-      },
+      data: { workspaceId: workspace.id, userId, action: "connector.connected", target: providerKey },
     })
 
-    const response = NextResponse.redirect(
-      new URL("/integrations?connected=" + provider, request.url)
-    )
+    const response = NextResponse.redirect(new URL(`/integrations?connected=${provider}`, request.url))
     response.cookies.delete("connector_state")
     return response
   } catch (err) {

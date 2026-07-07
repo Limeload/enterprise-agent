@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { getUserWorkspace } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ transactions: [], byAction: {} })
 
   const transactions = await prisma.creditTransaction.findMany({
@@ -22,7 +21,7 @@ export async function GET() {
     byAction[t.action] = (byAction[t.action] ?? 0) + t.credits
   }
 
-  const usedThisMonth = transactions.reduce((sum, t) => sum + t.credits, 0)
+  const usedThisMonth = transactions.reduce((sum: number, t) => sum + t.credits, 0)
 
   return NextResponse.json({
     transactions: transactions.map((t) => ({

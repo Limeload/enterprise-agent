@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { getUserWorkspace } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
 import type { ActionType, Prisma } from "@prisma/client"
@@ -16,10 +15,10 @@ const ACTION_COSTS: Record<string, number> = {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace?.credits) return NextResponse.json({ error: "No credits" }, { status: 400 })
 
   const { action, metadata } = await request.json()
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
     prisma.creditTransaction.create({
       data: {
         workspaceId: workspace.id,
-        userId: session.user.id,
+        userId,
         action: action as ActionType,
         credits: cost,
         metadata: metadata as Prisma.InputJsonValue,

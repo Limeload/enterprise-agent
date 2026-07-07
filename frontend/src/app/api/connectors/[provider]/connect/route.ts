@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { CONNECTOR_CONFIG } from "@/lib/connectors/config"
 import { getUserWorkspace } from "@/lib/session"
 import { randomBytes } from "crypto"
@@ -14,16 +13,17 @@ export async function GET(
   const config = CONNECTOR_CONFIG[providerKey]
   if (!config) return NextResponse.json({ error: "Unknown provider" }, { status: 400 })
 
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
 
   const state = randomBytes(16).toString("hex")
-  const params2 = new URLSearchParams({
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const searchParams = new URLSearchParams({
     client_id: config.clientId,
-    redirect_uri: `${process.env.BETTER_AUTH_URL}/api/connectors/${provider}/callback`,
+    redirect_uri: `${appUrl}/api/connectors/${provider}/callback`,
     scope: config.scopes.join(" "),
     response_type: "code",
     state,
@@ -31,8 +31,7 @@ export async function GET(
     prompt: "consent",
   })
 
-  const authUrl = `${config.authorizationUrl}?${params2.toString()}`
-
+  const authUrl = `${config.authorizationUrl}?${searchParams.toString()}`
   const response = NextResponse.redirect(authUrl)
   response.cookies.set("connector_state", state, {
     httpOnly: true,

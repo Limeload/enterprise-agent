@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
-import { bootstrapWorkspace } from "@/lib/workspace"
+import { auth, currentUser } from "@clerk/nextjs/server"
+import { getOrBootstrapWorkspace } from "@/lib/session"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
-  if (!session) return NextResponse.redirect(new URL("/login", base))
+  const { userId } = await auth()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  if (!userId) return NextResponse.redirect(new URL("/login", appUrl))
 
-  await bootstrapWorkspace(session.user.id, session.user.name)
-  return NextResponse.redirect(new URL("/chat", base))
+  const clerkUser = await currentUser()
+  await getOrBootstrapWorkspace(
+    userId,
+    clerkUser?.fullName,
+    clerkUser?.emailAddresses[0]?.emailAddress
+  )
+  return NextResponse.redirect(new URL("/chat", appUrl))
 }

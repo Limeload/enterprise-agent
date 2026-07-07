@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth-server"
-import { headers } from "next/headers"
+import { auth } from "@clerk/nextjs/server"
 import { getUserWorkspace } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
 
   return NextResponse.json({
@@ -26,16 +25,14 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const workspace = await getUserWorkspace(session.user.id)
+  const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
 
   const { name } = await request.json()
-  if (!name || typeof name !== "string") {
-    return NextResponse.json({ error: "Invalid name" }, { status: 400 })
-  }
+  if (!name || typeof name !== "string") return NextResponse.json({ error: "Invalid name" }, { status: 400 })
 
   const updated = await prisma.workspace.update({
     where: { id: workspace.id },
@@ -43,12 +40,7 @@ export async function PATCH(request: NextRequest) {
   })
 
   await prisma.auditLog.create({
-    data: {
-      workspaceId: workspace.id,
-      userId: session.user.id,
-      action: "workspace.renamed",
-      target: name.trim(),
-    },
+    data: { workspaceId: workspace.id, userId, action: "workspace.renamed", target: name.trim() },
   })
 
   return NextResponse.json({ ok: true, name: updated.name })
