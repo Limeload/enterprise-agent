@@ -134,10 +134,10 @@ export default function ChatInterface() {
       <MessageList messages={messages} onPrompt={(q) => sendQuery(q)} />
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-t border-ink-100 bg-white px-4 py-3 sm:px-8 sm:py-4">
+      <div className="shrink-0 border-t border-surface-border bg-surface-raised px-4 py-3 sm:px-8 sm:py-4">
         <form
           onSubmit={handleSubmit}
-          className="mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 focus-within:border-ink-400 focus-within:bg-white focus-within:shadow-sm transition-all"
+          className="mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-surface-border bg-surface-over px-3 py-2 focus-within:border-bc-accent/40 focus-within:bg-surface-raised focus-within:shadow-card transition-all"
         >
           <textarea
             ref={inputRef}
@@ -146,21 +146,21 @@ export default function ChatInterface() {
             onKeyDown={handleKeyDown}
             placeholder="Ask about your company knowledge…"
             rows={1}
-            className="flex-1 resize-none bg-transparent text-[14px] text-ink-950 placeholder:text-ink-400 focus:outline-none leading-relaxed"
+            className="flex-1 resize-none bg-transparent text-[14px] text-copy-primary placeholder:text-copy-disabled focus:outline-none leading-relaxed"
             style={{ maxHeight: "160px" }}
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink-950 text-white transition-all hover:bg-ink-800 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bc-accent text-white transition-all hover:opacity-90 hover:shadow-bc-sm active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isLoading
               ? <Loader2 size={14} className="animate-spin" />
               : <ArrowUp size={14} />}
           </button>
         </form>
-        <p className="mt-2 text-center text-[11px] text-ink-300">
-          Press <kbd className="rounded border border-ink-200 px-1 py-px font-mono text-[10px]">↵</kbd> to send · <kbd className="rounded border border-ink-200 px-1 py-px font-mono text-[10px]">⇧↵</kbd> for new line
+        <p className="mt-2 text-center text-[11px] text-copy-disabled">
+          Press <kbd className="rounded border border-surface-border px-1 py-px font-mono text-[10px]">↵</kbd> to send · <kbd className="rounded border border-surface-border px-1 py-px font-mono text-[10px]">⇧↵</kbd> for new line
         </p>
       </div>
     </div>

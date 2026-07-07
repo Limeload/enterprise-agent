@@ -2,16 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, Sparkles, Shield, Zap, Globe } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { login, signup } from "@/lib/api";
-
-const FEATURES = [
-  { icon: Sparkles, text: "Ask questions across GitHub, Slack, Notion, HubSpot and 28 more tools" },
-  { icon: Shield, text: "Role-based access with human-in-the-loop approval for write actions" },
-  { icon: Zap, text: "Streaming answers with cited sources — no hallucinations, no blind trust" },
-  { icon: Globe, text: "Connect your own accounts in seconds — no code, no IT ticket needed" },
-];
+import BrainCacheLogo from "@/components/BrainCacheLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +18,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!sessionLoading && session) router.replace("/");
+    if (!sessionLoading && session) router.replace("/chat");
   }, [session, sessionLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +30,7 @@ export default function LoginPage() {
         ? await login(email, password)
         : await signup(email, password);
       setSession(s);
-      router.replace("/");
+      router.replace("/chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -45,116 +39,63 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* ── Left brand panel ── */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-between bg-ink-950 px-16 py-12 relative overflow-hidden">
-        {/* Subtle grid texture */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-
-        {/* Logo */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-ink-950 font-bold text-sm tracking-tight">
-              EA
-            </div>
-            <span className="text-white font-semibold text-base tracking-tight">Enterprise Agent</span>
-          </div>
-        </div>
-
-        {/* Hero copy */}
-        <div className="relative z-10 max-w-sm">
-          <h1 className="text-[2.6rem] font-semibold leading-[1.15] tracking-tight text-white">
-            One place to ask.<br />
-            Every tool answers.
-          </h1>
-          <p className="mt-5 text-[15px] leading-relaxed text-ink-400">
-            Stop hopping between 10 tabs to piece together an answer. Enterprise Agent connects your entire stack and gives you cited, accurate answers in seconds.
-          </p>
-
-          <div className="mt-10 flex flex-col gap-4">
-            {FEATURES.map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/10">
-                  <Icon size={13} className="text-white/70" />
-                </div>
-                <p className="text-[13px] leading-relaxed text-ink-300">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom social proof */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {["A", "M", "S", "R"].map((l) => (
-                <div key={l} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[11px] font-medium text-white ring-2 ring-ink-950">
-                  {l}
-                </div>
-              ))}
-            </div>
-            <p className="text-[12px] text-ink-400">Trusted by engineering, ops & revenue teams</p>
-          </div>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-surface-base px-4">
+      {/* Background glow */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-bc-accent/8 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 h-[300px] w-[300px] rounded-full bg-bc-teal/6 blur-[100px]" />
       </div>
 
-      {/* ── Right form panel ── */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
-        {/* Mobile logo */}
-        <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink-950 text-white font-bold text-xs">EA</div>
-          <span className="font-semibold text-ink-900 text-sm">Enterprise Agent</span>
-        </div>
+      <div className="relative w-full max-w-[400px] animate-fade-in">
+        {/* Card */}
+        <div className="rounded-2xl border border-surface-border bg-surface-raised p-8 shadow-card">
+          {/* Logo */}
+          <div className="mb-8 flex justify-center">
+            <BrainCacheLogo size={36} />
+          </div>
 
-        <div className="w-full max-w-[360px]">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold tracking-tight text-ink-950">
+          <div className="mb-6 text-center">
+            <h1 className="text-[22px] font-semibold tracking-tight text-copy-primary">
               {mode === "login" ? "Welcome back" : "Create your account"}
-            </h2>
-            <p className="mt-1.5 text-[14px] text-ink-400">
+            </h1>
+            <p className="mt-1.5 text-[13px] text-copy-muted">
               {mode === "login"
-                ? "Log in to access your enterprise knowledge agent."
-                : "Set up your workspace in under a minute."}
+                ? "Sign in to access Brain Cache."
+                : "Get your workspace running in under a minute."}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "signup" && (
               <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-ink-700">Full name</label>
+                <label className="mb-1.5 block text-[12px] font-medium text-copy-secondary">Full name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-lg border border-ink-200 bg-ink-50 px-3.5 py-2.5 text-sm text-ink-950 placeholder:text-ink-400 focus:border-ink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-ink-950/10 transition-all"
+                  className="w-full rounded-lg border border-surface-border bg-surface-over px-3.5 py-2.5 text-sm text-copy-primary placeholder:text-copy-disabled focus:border-bc-accent/60 focus:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-bc-accent/15 transition-all"
                   placeholder="Ada Lovelace"
                 />
               </div>
             )}
 
             <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-ink-700">Work email</label>
+              <label className="mb-1.5 block text-[12px] font-medium text-copy-secondary">Work email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-ink-200 bg-ink-50 px-3.5 py-2.5 text-sm text-ink-950 placeholder:text-ink-400 focus:border-ink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-ink-950/10 transition-all"
+                className="w-full rounded-lg border border-surface-border bg-surface-over px-3.5 py-2.5 text-sm text-copy-primary placeholder:text-copy-disabled focus:border-bc-accent/60 focus:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-bc-accent/15 transition-all"
                 placeholder="you@company.com"
               />
             </div>
 
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-[13px] font-medium text-ink-700">Password</label>
+                <label className="text-[12px] font-medium text-copy-secondary">Password</label>
                 {mode === "login" && (
-                  <button type="button" className="text-[12px] text-ink-400 hover:text-ink-950 transition-colors">
+                  <button type="button" className="text-[11px] text-copy-muted hover:text-bc-accent transition-colors">
                     Forgot password?
                   </button>
                 )}
@@ -165,13 +106,13 @@ export default function LoginPage() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-ink-200 bg-ink-50 px-3.5 py-2.5 text-sm text-ink-950 placeholder:text-ink-400 focus:border-ink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-ink-950/10 transition-all"
+                className="w-full rounded-lg border border-surface-border bg-surface-over px-3.5 py-2.5 text-sm text-copy-primary placeholder:text-copy-disabled focus:border-bc-accent/60 focus:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-bc-accent/15 transition-all"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] text-red-700">
+              <div className="rounded-lg border border-cache-err/30 bg-cache-err/10 px-3.5 py-2.5 text-[13px] text-cache-err">
                 {error}
               </div>
             )}
@@ -179,13 +120,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-ink-950 text-[14px] font-medium text-white transition-all hover:bg-ink-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-bc-gradient text-[14px] font-semibold text-white transition-all hover:shadow-bc-sm hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <Loader2 size={15} className="animate-spin" />
               ) : (
                 <>
-                  {mode === "login" ? "Log in" : "Create account"}
+                  {mode === "login" ? "Sign in" : "Create account"}
                   <ArrowRight size={15} />
                 </>
               )}
@@ -193,31 +134,35 @@ export default function LoginPage() {
           </form>
 
           {mode === "signup" && (
-            <p className="mt-4 text-center text-[12px] text-ink-400">
+            <p className="mt-4 text-center text-[11px] text-copy-muted">
               By signing up you agree to our{" "}
-              <span className="underline underline-offset-2 cursor-pointer hover:text-ink-950 transition-colors">Terms</span>{" "}
+              <span className="underline underline-offset-2 cursor-pointer hover:text-bc-accent transition-colors">Terms</span>{" "}
               and{" "}
-              <span className="underline underline-offset-2 cursor-pointer hover:text-ink-950 transition-colors">Privacy Policy</span>.
+              <span className="underline underline-offset-2 cursor-pointer hover:text-bc-accent transition-colors">Privacy Policy</span>.
             </p>
           )}
 
-          <div className="mt-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-ink-100" />
-            <span className="text-[12px] text-ink-300">or</span>
-            <div className="h-px flex-1 bg-ink-100" />
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-surface-border" />
+            <span className="text-[11px] text-copy-disabled">or</span>
+            <div className="h-px flex-1 bg-surface-border" />
           </div>
 
           <button
             type="button"
             onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
-            className="mt-4 w-full text-center text-[13px] text-ink-500 hover:text-ink-950 transition-colors"
+            className="mt-4 w-full text-center text-[13px] text-copy-muted hover:text-copy-primary transition-colors"
           >
             {mode === "login" ? "Don't have an account? " : "Already have an account? "}
-            <span className="font-medium text-ink-950 underline underline-offset-2">
-              {mode === "login" ? "Sign up free" : "Log in"}
+            <span className="font-semibold text-bc-accent">
+              {mode === "login" ? "Sign up free" : "Sign in"}
             </span>
           </button>
         </div>
+
+        <p className="mt-4 text-center text-[11px] text-copy-disabled">
+          &copy; {new Date().getFullYear()} Brain Cache &middot; Store Knowledge. Retrieve Intelligence.
+        </p>
       </div>
     </div>
   );
