@@ -6,14 +6,13 @@ from typing import Any
 import httpx
 
 from connectors.base import BaseConnector
-from core.config import settings
 
 
 class SlackConnector(BaseConnector):
     name = "slack"
 
-    def __init__(self, token: str | None = None) -> None:
-        self._token = token or settings.slack_bot_token
+    def __init__(self, token: str) -> None:
+        self._token = token
         self._headers = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json; charset=utf-8",

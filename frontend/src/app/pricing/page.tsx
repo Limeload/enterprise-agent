@@ -88,7 +88,7 @@ export default function PricingPage() {
 
   const handleUpgrade = async (key: string) => {
     if (key === "FREE") {
-      window.location.href = session ? "/chat" : "/login"
+      window.location.href = session ? "/chat" : "/signup"
       return
     }
     if (key === "ENTERPRISE") {
@@ -96,7 +96,7 @@ export default function PricingPage() {
       return
     }
     if (!session) {
-      window.location.href = "/login"
+      window.location.href = "/signup"
       return
     }
     setLoading(key)
@@ -127,7 +127,7 @@ export default function PricingPage() {
             ) : (
               <>
                 <Link href="/login" className="text-[13px] text-copy-secondary hover:text-copy-primary transition-colors">Sign in</Link>
-                <Link href="/login" className="flex items-center gap-1.5 rounded-lg bg-bc-accent px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 transition-all">
+                <Link href="/signup" className="flex items-center gap-1.5 rounded-lg bg-bc-accent px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 transition-all">
                   Get started <ArrowRight size={13} />
                 </Link>
               </>

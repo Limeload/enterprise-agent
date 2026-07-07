@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
+import { isValidClerkPublishableKey } from "@/lib/clerk";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -24,13 +25,22 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const content = (
+    <html lang="en" className={`${poppins.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-surface-base font-sans antialiased">
+        {children}
+      </body>
+    </html>
+  )
+
+  if (!isValidClerkPublishableKey()) return content
+
   return (
-    <ClerkProvider>
-      <html lang="en" className={`${poppins.variable} ${geistMono.variable}`}>
-        <body className="min-h-screen bg-surface-base font-sans antialiased">
-          {children}
-        </body>
-      </html>
+    <ClerkProvider
+      signInUrl="/login"
+      signUpUrl="/signup"
+    >
+      {content}
     </ClerkProvider>
   );
 }

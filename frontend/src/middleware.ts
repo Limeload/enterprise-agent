@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+import { isValidClerkPublishableKey } from "@/lib/clerk"
 
 const isPublic = createRouteMatcher([
   "/",
@@ -6,11 +8,18 @@ const isPublic = createRouteMatcher([
   "/signup(.*)",
   "/pricing",
   "/api/billing/webhook",
+  "/api/workspace/bootstrap-redirect",
 ])
 
-export default clerkMiddleware(async (auth, req) => {
+const authMiddleware = clerkMiddleware(async (auth, req) => {
   if (!isPublic(req)) await auth.protect()
 })
+
+export default isValidClerkPublishableKey()
+  ? authMiddleware
+  : function middleware() {
+      return NextResponse.next()
+    }
 
 export const config = {
   matcher: [

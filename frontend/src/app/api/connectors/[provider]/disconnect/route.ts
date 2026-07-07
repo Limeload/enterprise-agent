@@ -4,6 +4,8 @@ import { getUserWorkspace } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
 import type { ConnectorProvider } from "@prisma/client"
 
+const backendUrl = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
@@ -14,6 +16,15 @@ export async function DELETE(
 
   const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
+
+  try {
+    await fetch(`${backendUrl}/api/v1/connectors/${provider.toLowerCase()}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    })
+  } catch {
+    // Local cleanup below still keeps the UI state correct when the backend is unavailable.
+  }
 
   await prisma.connector.updateMany({
     where: { workspaceId: workspace.id, provider: provider.toUpperCase() as ConnectorProvider },

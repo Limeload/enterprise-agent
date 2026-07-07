@@ -33,7 +33,8 @@ class Role(str, Enum):
 ROLE_SOURCE_PERMISSIONS: dict[Role, set[str]] = {
     Role.ADMIN: {
         "github", "gitlab", "jira", "notion", "confluence", "slack",
-        "gmail", "google_drive", "hubspot", "salesforce", "zendesk",
+        "gmail", "google_drive", "google_calendar", "hubspot", "salesforce", "zendesk",
+        "microsoft_teams", "onedrive",
         "snowflake", "bigquery", "postgres",
     },
     Role.ENGINEER: {

@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { MessageSquare, Plug2, BarChart3, CreditCard, Settings } from "lucide-react"
-import { useUser, UserButton } from "@clerk/nextjs"
+import { usePathname, useRouter } from "next/navigation"
+import { MessageSquare, Plug2, BarChart3, CreditCard, Settings, LogOut } from "lucide-react"
+import { useClerk, useUser, UserButton } from "@clerk/nextjs"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
 
 const NAV = [
@@ -16,6 +16,8 @@ const NAV = [
 
 export default function AppNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { signOut } = useClerk()
   const { user } = useUser()
 
   const name = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? ""
@@ -59,6 +61,14 @@ export default function AppNav() {
             <p className="truncate text-[10px] text-copy-muted">{email}</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => signOut(() => router.push("/"))}
+          className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[12px] font-medium text-copy-secondary transition-all hover:bg-surface-over hover:text-cache-err"
+        >
+          <LogOut size={14} />
+          Log out
+        </button>
       </div>
     </aside>
   )

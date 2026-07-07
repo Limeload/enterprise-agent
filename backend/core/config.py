@@ -43,25 +43,9 @@ class Settings(BaseSettings):
     otel_service_name: str = "enterprise-agent"
 
     # Connectors
-    github_token: str = ""
+    # Connector credentials are OAuth-only through Composio hosted auth configs.
+    # Keep non-secret connector options here; do not add provider access tokens.
     github_org: str = ""
-    notion_api_key: str = ""
-    slack_bot_token: str = ""
-    slack_signing_secret: str = ""
-    hubspot_access_token: str = ""
-    google_client_id: str = ""
-    google_client_secret: str = ""
-    google_refresh_token: str = ""
-    jira_base_url: str = ""
-    jira_email: str = ""
-    jira_api_token: str = ""
-    salesforce_client_id: str = ""
-    salesforce_client_secret: str = ""
-    salesforce_refresh_token: str = ""
-    salesforce_instance_url: str = ""
-    zendesk_subdomain: str = ""
-    zendesk_email: str = ""
-    zendesk_api_token: str = ""
     composio_api_key: str = ""
     # Maps connector source name -> Composio auth config id (created in the Composio
     # dashboard per toolkit, e.g. {"github": "ac_xxx", "slack": "ac_yyy"})

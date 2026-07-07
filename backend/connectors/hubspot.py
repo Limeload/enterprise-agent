@@ -6,14 +6,13 @@ from typing import Any
 import httpx
 
 from connectors.base import BaseConnector
-from core.config import settings
 
 
 class HubSpotConnector(BaseConnector):
     name = "hubspot"
 
-    def __init__(self, token: str | None = None) -> None:
-        self._token = token or settings.hubspot_access_token
+    def __init__(self, token: str) -> None:
+        self._token = token
         self._headers = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",

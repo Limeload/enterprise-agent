@@ -1,8 +1,8 @@
-import { SignIn } from "@clerk/nextjs"
+import { SignUp } from "@clerk/nextjs"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
 import { isValidClerkPublishableKey } from "@/lib/clerk"
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const clerkReady = isValidClerkPublishableKey()
 
   return (
@@ -14,9 +14,9 @@ export default function LoginPage() {
       <div className="relative flex flex-col items-center gap-6 animate-fade-in">
         <BrainCacheLogo size={36} />
         {clerkReady ? (
-          <SignIn
+          <SignUp
             routing="hash"
-            signUpUrl="/signup"
+            signInUrl="/login"
             forceRedirectUrl="/api/workspace/bootstrap-redirect"
             fallbackRedirectUrl="/api/workspace/bootstrap-redirect"
           />

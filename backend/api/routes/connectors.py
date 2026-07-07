@@ -86,7 +86,12 @@ async def connector_callback(source: str, connectedAccountId: str = Query(...)) 
             composio_connection_id=connectedAccountId,
         )
 
-    return RedirectResponse(url=f"{settings.frontend_url}/connectors?source={source}&status={status_value}")
+    if status_value == "connected":
+        redirect_url = f"{settings.frontend_url}/integrations?connected={source}"
+    else:
+        redirect_url = f"{settings.frontend_url}/integrations?error=auth_failed&provider={source}"
+
+    return RedirectResponse(url=redirect_url)
 
 
 @router.delete("/{source}")

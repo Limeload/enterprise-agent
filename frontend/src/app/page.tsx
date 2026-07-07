@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Search, Zap, Lock, GitBranch, ChevronDown, Play } from "lucide-react";
+import { ArrowRight, Check, Search, Zap, Lock, GitBranch, ChevronDown } from "lucide-react";
 import BrainCacheLogo from "@/components/BrainCacheLogo";
 
 const PRICING = [
@@ -18,7 +18,7 @@ const PRICING = [
       "Community support",
     ],
     cta: "Start for free",
-    href: "/login",
+    href: "/signup",
     highlighted: false,
   },
   {
@@ -35,7 +35,7 @@ const PRICING = [
       "Advanced usage analytics",
     ],
     cta: "Get started",
-    href: "/login",
+    href: "/signup",
     highlighted: true,
     badge: "Most popular",
   },
@@ -90,21 +90,12 @@ const STATS = [
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const handlePlay = () => {
-    if (videoRef.current) {
-      videoRef.current.play();
-      setPlaying(true);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white text-copy-primary">
@@ -119,7 +110,7 @@ export default function LandingPage() {
             <Link href="/login" className="hover:text-copy-primary transition-colors">Sign in</Link>
           </nav>
           <Link
-            href="/login"
+            href="/signup"
             className="flex items-center gap-1.5 rounded-lg bg-bc-accent px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 hover:shadow-bc-sm transition-all"
           >
             Get started <ArrowRight size={13} />
@@ -148,7 +139,7 @@ export default function LandingPage() {
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/login"
+            href="/signup"
             className="flex items-center gap-2 rounded-xl bg-bc-gradient px-6 py-3 text-[14px] font-semibold text-white shadow-bc-sm hover:shadow-bc-glow hover:opacity-95 transition-all"
           >
             Start for free <ArrowRight size={14} />
@@ -178,44 +169,66 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Product video ── */}
+      {/* ── Product preview ── */}
       <section id="product" className="mx-auto max-w-5xl px-6 py-24">
         <div className="mb-12 text-center">
           <h2 className="text-[2.2rem] font-bold tracking-tight">
             See it in action.{" "}
-            <span className="text-copy-muted font-normal text-[1.8rem]">It&apos;s shorter than a standup.</span>
+            <span className="text-copy-muted font-normal text-[1.8rem]">No missing context, no tab shuffle.</span>
           </h2>
           <p className="mt-3 text-[15px] text-copy-secondary">
-            Thirty seconds. No sales pitch. Just the product doing its thing.
+            Ask one question and get grounded answers across the tools your team already uses.
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-surface-border shadow-[0_8px_40px_rgba(108,92,231,0.12)] bg-bc-navy aspect-video">
-          <video
-            ref={videoRef}
-            className="h-full w-full object-cover"
-            src="/demo.mp4"
-            poster="/demo-poster.png"
-            onPlay={() => setPlaying(true)}
-            onEnded={() => setPlaying(false)}
-            controls={playing}
-            playsInline
-          />
-
-          {!playing && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-bc-navy/60 backdrop-blur-sm">
-              <div className="mb-6 opacity-80">
-                <BrainCacheLogo size={52} variant="mark" />
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-bc-navy shadow-[0_8px_40px_rgba(108,92,231,0.12)]">
+          <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3">
+            <span className="h-2.5 w-2.5 rounded-full bg-cache-err" />
+            <span className="h-2.5 w-2.5 rounded-full bg-cache-miss" />
+            <span className="h-2.5 w-2.5 rounded-full bg-cache-hit" />
+            <span className="ml-3 text-[12px] font-medium text-white/60">Brain Cache workspace</span>
+          </div>
+          <div className="grid gap-0 md:grid-cols-[240px_1fr]">
+            <aside className="border-b border-white/10 bg-white/[0.03] p-4 md:border-b-0 md:border-r">
+              {["Slack", "GitHub", "Notion", "Jira"].map((source, idx) => (
+                <div key={source} className="mb-3 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-semibold text-white">{source}</span>
+                    <span className="h-2 w-2 rounded-full bg-cache-hit" />
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-bc-accent" style={{ width: `${72 - idx * 9}%` }} />
+                  </div>
+                </div>
+              ))}
+            </aside>
+            <div className="p-5 md:p-8">
+              <div className="mb-5 rounded-xl bg-white px-4 py-3 text-[14px] font-medium text-copy-primary shadow-sm">
+                What changed in the customer onboarding flow this week?
               </div>
-              <button
-                onClick={handlePlay}
-                className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_0_40px_rgba(108,92,231,0.5)] hover:scale-105 transition-transform"
-              >
-                <Play size={22} className="text-bc-accent ml-1" fill="#6C5CE7" />
-              </button>
-              <p className="mt-4 text-[13px] font-medium text-white/80">Watch the 30-second demo</p>
+              <div className="rounded-xl border border-white/10 bg-white/[0.06] p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <BrainCacheLogo size={28} variant="mark" />
+                  <div>
+                    <p className="text-[13px] font-semibold text-white">Synthesized answer</p>
+                    <p className="text-[11px] text-white/55">Slack, GitHub, Notion, and Jira cited</p>
+                  </div>
+                </div>
+                <p className="text-[14px] leading-relaxed text-white/82">
+                  The team shipped workspace bootstrap, tightened connector permissions, and moved billing copy to the new credit model.
+                  Two Jira tickets remain open around onboarding plan selection and document upload.
+                </p>
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                  {["Slack thread", "GitHub PR", "Jira sprint"].map((item) => (
+                    <div key={item} className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2">
+                      <p className="text-[11px] font-medium text-white/80">{item}</p>
+                      <p className="mt-1 text-[10px] text-white/45">source cited</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -324,7 +337,7 @@ export default function LandingPage() {
             Brain Cache fixes that. No PhD in search required.
           </p>
           <Link
-            href="/login"
+            href="/signup"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-[14px] font-semibold text-bc-accent hover:shadow-[0_0_32px_rgba(255,255,255,0.3)] transition-all"
           >
             Get started for free <ArrowRight size={14} />

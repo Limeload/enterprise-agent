@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Check, Loader2, Plug2, X, RefreshCw } from "lucide-react"
 import AppNav from "@/components/AppNav"
+import ConnectorIcon from "@/components/ConnectorIcon"
 import { CONNECTOR_META, CONNECTOR_CATEGORIES } from "@/lib/connectors/meta"
 
 interface ConnectorRow {
@@ -24,6 +25,17 @@ function timeAgo(iso: string | null) {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
+}
+
+function connectionMessage(error: string, provider?: string | null) {
+  const connector = provider ? ` for ${provider.replace(/_/g, " ")}` : ""
+  const messages: Record<string, string> = {
+    oauth_not_configured: `Hosted OAuth is not configured${connector}. Add a Composio auth config id on the backend, then restart the app.`,
+    unknown_provider: "Unknown connector.",
+    invalid_state: "Connection failed because the OAuth session expired. Try again.",
+    auth_failed: "Connection failed during provider authorization.",
+  }
+  return messages[error] ?? `Connection failed: ${error.replace(/_/g, " ")}.`
 }
 
 function IntegrationsInner() {
@@ -58,7 +70,7 @@ function IntegrationsInner() {
     if (connected) {
       setNotice({ type: "success", text: `${connected.replace(/_/g, " ")} connected successfully.` })
     } else if (error) {
-      setNotice({ type: "error", text: `Connection failed: ${error.replace(/_/g, " ")}.` })
+      setNotice({ type: "error", text: connectionMessage(error, searchParams.get("provider")) })
     }
   }, [searchParams])
 
@@ -138,9 +150,7 @@ function IntegrationsInner() {
                     className="flex flex-col rounded-2xl border border-surface-border bg-surface-raised p-5 hover:border-bc-accent/30 hover:shadow-card transition-all"
                   >
                     <div className="mb-3 flex items-start justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-over text-[18px]">
-                        {c.icon}
-                      </div>
+                      <ConnectorIcon connector={c} />
                       {connected && (
                         <span className="flex items-center gap-1 rounded-full bg-cache-hit/10 px-2 py-0.5 text-[10px] font-medium text-cache-hit">
                           <Check size={10} /> Connected

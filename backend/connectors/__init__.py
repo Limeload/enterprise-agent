@@ -96,7 +96,7 @@ def _per_user_connector_classes() -> dict[str, type]:
 
 def get_connector(name: str, user_id: str | None = None) -> BaseConnector | None:
     """Resolve a connector. If `user_id` has a connected personal credential for `name`,
-    instantiate a fresh connector with that credential instead of the global env-based one."""
+    instantiate a fresh connector with the OAuth credential for that user."""
     if user_id and name in PER_USER_CAPABLE_SOURCES:
         from core.encryption import decrypt_secret
         from db.connections import get_connection

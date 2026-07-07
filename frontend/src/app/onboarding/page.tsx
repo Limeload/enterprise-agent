@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Check, Loader2 } from "lucide-react"
 import BrainCacheLogo from "@/components/BrainCacheLogo"
+import ConnectorIcon from "@/components/ConnectorIcon"
+import { CONNECTOR_META } from "@/lib/connectors/meta"
 import { useUser } from "@clerk/nextjs"
 
 const USE_CASES = [
@@ -13,14 +15,9 @@ const USE_CASES = [
   { id: "customer_success", label: "Customer Success", desc: "Zendesk, Intercom, Gmail" },
 ]
 
-const CONNECTORS = [
-  { key: "GITHUB", name: "GitHub", abbr: "GH", color: "bg-surface-muted text-copy-primary" },
-  { key: "SLACK", name: "Slack", abbr: "Sl", color: "bg-bc-accent text-white" },
-  { key: "NOTION", name: "Notion", abbr: "No", color: "bg-surface-over text-copy-primary" },
-  { key: "GOOGLE_DRIVE", name: "Google Drive", abbr: "GD", color: "bg-bc-700 text-white" },
-  { key: "JIRA", name: "Jira", abbr: "Ji", color: "bg-bc-700 text-white" },
-  { key: "GMAIL", name: "Gmail", abbr: "Gm", color: "bg-cache-err text-white" },
-]
+const CONNECTORS = CONNECTOR_META.filter(({ key }) =>
+  ["GITHUB", "SLACK", "NOTION", "GOOGLE_DRIVE", "JIRA", "GMAIL"].includes(key)
+)
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -133,14 +130,14 @@ export default function OnboardingPage() {
               <h2 className="text-[20px] font-semibold text-copy-primary mb-1">Connect your first tool</h2>
               <p className="text-[13px] text-copy-muted mb-6">Click to connect via OAuth — no tokens needed.</p>
               <div className="grid grid-cols-2 gap-2 mb-6">
-                {CONNECTORS.map(({ key, name, abbr, color }) => (
+                {CONNECTORS.map((connector) => (
                   <button
-                    key={key}
-                    onClick={() => handleConnect(key)}
+                    key={connector.key}
+                    onClick={() => handleConnect(connector.key)}
                     className="flex items-center gap-2.5 rounded-xl border border-surface-border bg-surface-over p-3 text-left hover:border-bc-accent/40 hover:shadow-card-hover transition-all"
                   >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${color}`}>{abbr}</div>
-                    <span className="text-[13px] font-medium text-copy-primary">{name}</span>
+                    <ConnectorIcon connector={connector} size="sm" />
+                    <span className="text-[13px] font-medium text-copy-primary">{connector.name}</span>
                   </button>
                 ))}
               </div>
