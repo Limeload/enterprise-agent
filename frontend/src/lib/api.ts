@@ -1,5 +1,3 @@
-import type { LocalSession } from "@/lib/auth";
-
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface ChatMessage {
@@ -55,11 +53,11 @@ async function post<T>(path: string, body: unknown, accessToken?: string | null)
 // Auth
 // ---------------------------------------------------------------------------
 
-export async function login(email: string, password: string): Promise<LocalSession> {
+export async function login(email: string, password: string): Promise<unknown> {
   return post("/api/backend/auth/login", { email, password });
 }
 
-export async function signup(email: string, password: string): Promise<LocalSession> {
+export async function signup(email: string, password: string): Promise<unknown> {
   return post("/api/backend/auth/signup", { email, password });
 }
 
