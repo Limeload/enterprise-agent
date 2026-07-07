@@ -1,74 +1,40 @@
-"use client";
+"use client"
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useSession, signOut } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
 
+// Legacy session shape kept for backwards compatibility with api.ts helpers.
 export interface LocalSession {
-  access_token: string;
-  user_id: string;
-  email: string;
-  role: string;
+  access_token: string
+  user_id: string
+  email: string
+  role: string
 }
 
-interface AuthContextValue {
-  session: LocalSession | null;
-  loading: boolean;
-  accessToken: string | null;
-  signOut: () => Promise<void>;
-  setSession: (s: LocalSession | null) => void;
+// Compatibility shim — delegates to Better Auth.
+export function useAuth() {
+  const { data: session, isPending: loading } = useSession()
+  const router = useRouter()
+
+  return {
+    session: session
+      ? {
+          access_token: session.session.token,
+          user_id: session.user.id,
+          email: session.user.email,
+          role: "owner",
+        }
+      : null,
+    loading,
+    accessToken: session?.session.token ?? null,
+    signOut: async () => {
+      await signOut()
+      router.replace("/")
+    },
+    setSession: () => {}, // no-op — Better Auth manages sessions
+  }
 }
-
-const AuthContext = createContext<AuthContextValue>({
-  session: null,
-  loading: true,
-  accessToken: null,
-  signOut: async () => {},
-  setSession: () => {},
-});
-
-const SESSION_KEY = "ea_session";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSessionState] = useState<LocalSession | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) setSessionState(JSON.parse(stored));
-    } catch {
-      // ignore
-    }
-    setLoading(false);
-  }, []);
-
-  const setSession = useCallback((s: LocalSession | null) => {
-    setSessionState(s);
-    if (s) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    setSession(null);
-  }, [setSession]);
-
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        loading,
-        accessToken: session?.access_token ?? null,
-        signOut,
-        setSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
+  return <>{children}</>
 }
