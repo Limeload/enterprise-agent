@@ -1,119 +1,131 @@
-"""Connector registry — maps source names to connector instances."""
+"""Connector registry — resolves per-user connector instances using Nango tokens.
+
+Every connector that requires OAuth is resolved dynamically at request time:
+1. Look up the user's Nango connection ID from the DB.
+2. Fetch a fresh access token from Nango (Nango handles refresh automatically).
+3. Instantiate the connector class with that token.
+
+This means BrainCache never stores raw OAuth credentials — only Nango connection IDs.
+"""
 from __future__ import annotations
 
 from connectors.base import BaseConnector
 
-_registry: dict[str, BaseConnector] = {}
-
-# Source names that support a real, per-user OAuth-connected implementation.
-PER_USER_CAPABLE_SOURCES = ("github", "notion", "slack", "hubspot")
+# All sources that support a real Nango-backed OAuth implementation.
+NANGO_CAPABLE_SOURCES = (
+    "gmail",
+    "google_drive",
+    "google_calendar",
+    "slack",
+    "github",
+    "jira",
+    "notion",
+    "confluence",
+    "salesforce",
+    "hubspot",
+    "zendesk",
+    "microsoft_teams",
+    "onedrive",
+)
 
 ALL_SOURCE_NAMES = (
-    "github", "notion", "slack", "hubspot",
-    "gmail", "google_drive", "confluence", "sharepoint", "gitlab", "bitbucket",
-    "jira", "linear", "azure_devops", "salesforce", "zendesk", "intercom",
-    "freshdesk", "google_calendar", "outlook_calendar", "asana", "monday",
-    "trello", "snowflake", "bigquery", "databricks", "redshift", "postgres",
-    "mysql", "microsoft_teams", "dropbox", "box", "onedrive",
+    "gmail", "google_drive", "google_calendar",
+    "slack", "github", "jira", "notion", "confluence",
+    "salesforce", "hubspot", "zendesk",
+    "microsoft_teams", "onedrive",
+    "sharepoint", "gitlab", "bitbucket", "linear", "azure_devops",
+    "intercom", "freshdesk", "outlook_calendar",
+    "asana", "monday", "trello",
+    "snowflake", "bigquery", "databricks", "redshift", "postgres", "mysql",
+    "dropbox", "box",
 )
 
 
-def _build_registry() -> dict[str, BaseConnector]:
-    from connectors.github import GitHubConnector
-    from connectors.notion import NotionConnector
+def _connector_classes() -> dict[str, type]:
+    from connectors.gmail import GmailConnector
+    from connectors.google_drive import GoogleDriveConnector
+    from connectors.google_calendar import GoogleCalendarConnector
     from connectors.slack import SlackConnector
+    from connectors.github import GitHubConnector
+    from connectors.jira import JiraConnector
+    from connectors.notion import NotionConnector
+    from connectors.confluence import ConfluenceConnector
+    from connectors.salesforce import SalesforceConnector
     from connectors.hubspot import HubSpotConnector
-    from connectors.stubs import (
-        GmailConnector, GoogleDriveConnector, ConfluenceConnector, SharePointConnector,
-        GitLabConnector, BitbucketConnector, JiraConnector, LinearConnector,
-        AzureDevOpsConnector, SalesforceConnector, ZendeskConnector, IntercomConnector,
-        FreshdeskConnector, GoogleCalendarConnector, OutlookCalendarConnector,
-        AsanaConnector, MondayConnector, TrelloConnector, SnowflakeConnector,
-        BigQueryConnector, DatabricksConnector, RedshiftConnector, PostgresConnector,
-        MySQLConnector, TeamsConnector, DropboxConnector, BoxConnector, OneDriveConnector,
-    )
+    from connectors.zendesk import ZendeskConnector
+    from connectors.microsoft_teams import MicrosoftTeamsConnector
+    from connectors.onedrive import OneDriveConnector
 
-    reg: dict[str, BaseConnector] = {
-        # Real connectors — activated only via per-user credentials connected through the UI.
-        # Global env-var tokens are intentionally not used here; users connect their own accounts.
-        "github":          None,
-        "notion":          None,
-        "slack":           None,
-        "hubspot":         None,
-        # Stubs — replace with real implementations as you add credentials
-        "gmail":           GmailConnector(),
-        "google_drive":    GoogleDriveConnector(),
-        "confluence":      ConfluenceConnector(),
-        "sharepoint":      SharePointConnector(),
-        "gitlab":          GitLabConnector(),
-        "bitbucket":       BitbucketConnector(),
-        "jira":            JiraConnector(),
-        "linear":          LinearConnector(),
-        "azure_devops":    AzureDevOpsConnector(),
-        "salesforce":      SalesforceConnector(),
-        "zendesk":         ZendeskConnector(),
-        "intercom":        IntercomConnector(),
-        "freshdesk":       FreshdeskConnector(),
-        "google_calendar": GoogleCalendarConnector(),
-        "outlook_calendar":OutlookCalendarConnector(),
-        "asana":           AsanaConnector(),
-        "monday":          MondayConnector(),
-        "trello":          TrelloConnector(),
-        "snowflake":       SnowflakeConnector(),
-        "bigquery":        BigQueryConnector(),
-        "databricks":      DatabricksConnector(),
-        "redshift":        RedshiftConnector(),
-        "postgres":        PostgresConnector(),
-        "mysql":           MySQLConnector(),
-        "microsoft_teams": TeamsConnector(),
-        "dropbox":         DropboxConnector(),
-        "box":             BoxConnector(),
-        "onedrive":        OneDriveConnector(),
+    return {
+        "gmail":           GmailConnector,
+        "google_drive":    GoogleDriveConnector,
+        "google_calendar": GoogleCalendarConnector,
+        "slack":           SlackConnector,
+        "github":          GitHubConnector,
+        "jira":            JiraConnector,
+        "notion":          NotionConnector,
+        "confluence":      ConfluenceConnector,
+        "salesforce":      SalesforceConnector,
+        "hubspot":         HubSpotConnector,
+        "zendesk":         ZendeskConnector,
+        "microsoft_teams": MicrosoftTeamsConnector,
+        "onedrive":        OneDriveConnector,
     }
-    # Filter out None values
-    return {k: v for k, v in reg.items() if v is not None}
 
 
-_PER_USER_CONNECTOR_CLASSES: dict[str, type] = {}
+def _stub_registry() -> dict[str, BaseConnector]:
+    from connectors.stubs import (
+        SharePointConnector, GitLabConnector, BitbucketConnector, LinearConnector,
+        AzureDevOpsConnector, IntercomConnector, FreshdeskConnector,
+        OutlookCalendarConnector, AsanaConnector, MondayConnector, TrelloConnector,
+        SnowflakeConnector, BigQueryConnector, DatabricksConnector, RedshiftConnector,
+        PostgresConnector, MySQLConnector, DropboxConnector, BoxConnector,
+    )
+    return {
+        "sharepoint":       SharePointConnector(),
+        "gitlab":           GitLabConnector(),
+        "bitbucket":        BitbucketConnector(),
+        "linear":           LinearConnector(),
+        "azure_devops":     AzureDevOpsConnector(),
+        "intercom":         IntercomConnector(),
+        "freshdesk":        FreshdeskConnector(),
+        "outlook_calendar": OutlookCalendarConnector(),
+        "asana":            AsanaConnector(),
+        "monday":           MondayConnector(),
+        "trello":           TrelloConnector(),
+        "snowflake":        SnowflakeConnector(),
+        "bigquery":         BigQueryConnector(),
+        "databricks":       DatabricksConnector(),
+        "redshift":         RedshiftConnector(),
+        "postgres":         PostgresConnector(),
+        "mysql":            MySQLConnector(),
+        "dropbox":          DropboxConnector(),
+        "box":              BoxConnector(),
+    }
 
 
-def _per_user_connector_classes() -> dict[str, type]:
-    global _PER_USER_CONNECTOR_CLASSES
-    if not _PER_USER_CONNECTOR_CLASSES:
-        from connectors.github import GitHubConnector
-        from connectors.notion import NotionConnector
-        from connectors.slack import SlackConnector
-        from connectors.hubspot import HubSpotConnector
+async def get_connector(name: str, user_id: str | None = None) -> BaseConnector | None:
+    """Resolve a connector instance for the given user.
 
-        _PER_USER_CONNECTOR_CLASSES = {
-            "github": GitHubConnector,
-            "notion": NotionConnector,
-            "slack": SlackConnector,
-            "hubspot": HubSpotConnector,
-        }
-    return _PER_USER_CONNECTOR_CLASSES
-
-
-def get_connector(name: str, user_id: str | None = None) -> BaseConnector | None:
-    """Resolve a connector. If `user_id` has a connected personal credential for `name`,
-    instantiate a fresh connector with the OAuth credential for that user."""
-    if user_id and name in PER_USER_CAPABLE_SOURCES:
-        from core.encryption import decrypt_secret
+    For Nango-capable connectors, fetches a fresh token from Nango using the
+    user's stored connection ID. Falls back to stub connectors for sources not
+    yet implemented or when the user has no active connection.
+    """
+    if user_id and name in NANGO_CAPABLE_SOURCES:
         from db.connections import get_connection
+        from integrations import nango_client
 
         record = get_connection(user_id, name)
-        if record and record.get("status") == "connected" and record.get("encrypted_credential"):
-            connector_cls = _per_user_connector_classes()[name]
-            token = decrypt_secret(record["encrypted_credential"])
-            return connector_cls(token=token)
+        if record and record.get("status") == "connected" and record.get("nango_connection_id"):
+            token = await nango_client.get_token(name, record["nango_connection_id"])
+            if token:
+                connector_cls = _connector_classes().get(name)
+                if connector_cls:
+                    return connector_cls(token=token)
 
-    global _registry
-    if not _registry:
-        _registry = _build_registry()
-    return _registry.get(name)
+    return _stub_registry().get(name)
 
 
 def list_connectors() -> list[str]:
-    """All known connector source names — used for the connectors settings UI
-    and as the default search scope, independent of whether credentials are configured."""
+    """All known connector source names for the integrations UI and default search scope."""
     return list(ALL_SOURCE_NAMES)

@@ -92,20 +92,21 @@ model CreditTransaction {
 }
 
 model Connector {
-  id                    String            @id @default(cuid())
-  workspaceId           String
-  workspace             Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId                String
-  user                  User              @relation(fields: [userId], references: [id])
-  provider              ConnectorProvider
-  status                ConnectorStatus   @default(DISCONNECTED)
-  scopes                String[]
-  encryptedAccessToken  String?
-  encryptedRefreshToken String?
-  expiresAt             DateTime?
-  lastSyncedAt          DateTime?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  id                   String            @id @default(cuid())
+  workspaceId          String
+  workspace            Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User              @relation(fields: [userId], references: [id])
+  provider             ConnectorProvider
+  status               ConnectorStatus   @default(DISCONNECTED)
+  scopes               String[]
+  // Nango stores OAuth tokens — BrainCache only stores the connection reference
+  nangoConnectionId    String?
+  providerAccountId    String?
+  providerAccountEmail String?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   @@unique([workspaceId, provider])
 }

@@ -43,8 +43,7 @@ opentelemetry-exporter-otlp>=1.29.0
 opentelemetry-instrumentation-fastapi>=0.50b0
 opentelemetry-instrumentation-httpx>=0.50b0
 
-# Connectors
-composio>=1.0.0rc10
+# Connectors — OAuth managed by Nango (no Composio dependency)
 
 # Data processing
 pydantic>=2.10.0

@@ -29,13 +29,12 @@ def init_db() -> None:
                 created_at TEXT DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS user_connections (
-                user_id               TEXT NOT NULL,
-                source                TEXT NOT NULL,
-                status                TEXT NOT NULL,
-                composio_connection_id TEXT,
-                encrypted_credential  TEXT,
-                metadata              TEXT DEFAULT '{}',
-                updated_at            TEXT DEFAULT (datetime('now')),
+                user_id              TEXT NOT NULL,
+                source               TEXT NOT NULL,
+                status               TEXT NOT NULL,
+                nango_connection_id  TEXT,
+                metadata             TEXT DEFAULT '{}',
+                updated_at           TEXT DEFAULT (datetime('now')),
                 PRIMARY KEY (user_id, source)
             );
         """)
@@ -86,11 +85,11 @@ def get_connection(user_id: str, source: str) -> dict[str, Any] | None:
     return _row_to_dict(row) if row else None
 
 
-def get_connection_by_composio_id(composio_connection_id: str) -> dict[str, Any] | None:
+def get_connection_by_nango_id(nango_connection_id: str) -> dict[str, Any] | None:
     with _lock, _conn() as con:
         row = con.execute(
-            "SELECT * FROM user_connections WHERE composio_connection_id=?",
-            (composio_connection_id,),
+            "SELECT * FROM user_connections WHERE nango_connection_id=?",
+            (nango_connection_id,),
         ).fetchone()
     return _row_to_dict(row) if row else None
 
@@ -99,28 +98,25 @@ def upsert_connection(
     user_id: str,
     source: str,
     status: str,
-    composio_connection_id: str | None = None,
-    encrypted_credential: str | None = None,
+    nango_connection_id: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     row = {
         "user_id": user_id,
         "source": source,
         "status": status,
-        "composio_connection_id": composio_connection_id,
-        "encrypted_credential": encrypted_credential,
+        "nango_connection_id": nango_connection_id,
         "metadata": json.dumps(metadata or {}),
     }
     with _lock, _conn() as con:
         con.execute(
             """
             INSERT INTO user_connections
-                (user_id, source, status, composio_connection_id, encrypted_credential, metadata)
-            VALUES (:user_id, :source, :status, :composio_connection_id, :encrypted_credential, :metadata)
+                (user_id, source, status, nango_connection_id, metadata)
+            VALUES (:user_id, :source, :status, :nango_connection_id, :metadata)
             ON CONFLICT(user_id, source) DO UPDATE SET
                 status=excluded.status,
-                composio_connection_id=excluded.composio_connection_id,
-                encrypted_credential=excluded.encrypted_credential,
+                nango_connection_id=excluded.nango_connection_id,
                 metadata=excluded.metadata,
                 updated_at=datetime('now')
             """,

@@ -34,14 +34,14 @@ def get_connection(user_id: str, source: str) -> dict[str, Any] | None:
     return rows[0] if rows else None
 
 
-def get_connection_by_composio_id(composio_connection_id: str) -> dict[str, Any] | None:
+def get_connection_by_nango_id(nango_connection_id: str) -> dict[str, Any] | None:
     if _use_local():
-        return _local.get_connection_by_composio_id(composio_connection_id)
+        return _local.get_connection_by_nango_id(nango_connection_id)
     resp = (
         get_supabase()
         .table("user_connections")
         .select("*")
-        .eq("composio_connection_id", composio_connection_id)
+        .eq("nango_connection_id", nango_connection_id)
         .limit(1)
         .execute()
     )
@@ -53,20 +53,16 @@ def upsert_connection(
     user_id: str,
     source: str,
     status: str,
-    composio_connection_id: str | None = None,
-    encrypted_credential: str | None = None,
+    nango_connection_id: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if _use_local():
-        return _local.upsert_connection(
-            user_id, source, status, composio_connection_id, encrypted_credential, metadata
-        )
+        return _local.upsert_connection(user_id, source, status, nango_connection_id, metadata)
     row = {
         "user_id": user_id,
         "source": source,
         "status": status,
-        "composio_connection_id": composio_connection_id,
-        "encrypted_credential": encrypted_credential,
+        "nango_connection_id": nango_connection_id,
         "metadata": metadata or {},
     }
     resp = get_supabase().table("user_connections").upsert(row, on_conflict="user_id,source").execute()

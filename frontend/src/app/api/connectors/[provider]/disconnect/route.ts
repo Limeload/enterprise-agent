@@ -11,28 +11,41 @@ export async function DELETE(
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider } = await params
+  const providerKey = provider.toUpperCase()
+
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const workspace = await getUserWorkspace(userId)
   if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 400 })
 
+  // Ask the backend to delete from Nango (best-effort — don't block on failure)
   try {
     await fetch(`${backendUrl}/api/v1/connectors/${provider.toLowerCase()}`, {
       method: "DELETE",
       headers: { Accept: "application/json" },
     })
   } catch {
-    // Local cleanup below still keeps the UI state correct when the backend is unavailable.
+    // Backend unavailable — local cleanup below still reflects the correct UI state
   }
 
   await prisma.connector.updateMany({
-    where: { workspaceId: workspace.id, provider: provider.toUpperCase() as ConnectorProvider },
-    data: { status: "DISCONNECTED", encryptedAccessToken: null, encryptedRefreshToken: null },
+    where: { workspaceId: workspace.id, provider: providerKey as ConnectorProvider },
+    data: {
+      status: "DISCONNECTED",
+      nangoConnectionId: null,
+      providerAccountEmail: null,
+      providerAccountId: null,
+    },
   })
 
   await prisma.auditLog.create({
-    data: { workspaceId: workspace.id, userId, action: "connector.disconnected", target: provider.toUpperCase() },
+    data: {
+      workspaceId: workspace.id,
+      userId,
+      action: "connector.disconnected",
+      target: providerKey,
+    },
   })
 
   return NextResponse.json({ ok: true })

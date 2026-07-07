@@ -43,13 +43,13 @@ class Settings(BaseSettings):
     otel_service_name: str = "enterprise-agent"
 
     # Connectors
-    # Connector credentials are OAuth-only through Composio hosted auth configs.
-    # Keep non-secret connector options here; do not add provider access tokens.
+    # Connector OAuth is managed by Nango. BrainCache only stores connection IDs.
+    # Do not add provider access tokens here.
     github_org: str = ""
-    composio_api_key: str = ""
-    # Maps connector source name -> Composio auth config id (created in the Composio
-    # dashboard per toolkit, e.g. {"github": "ac_xxx", "slack": "ac_yyy"})
-    composio_auth_config_ids: dict[str, str] = {}
+
+    # Nango — OAuth infrastructure
+    nango_secret_key: str = ""      # Backend-only secret key (NANGO_SECRET_KEY)
+    nango_public_key: str = ""      # Frontend public key (NEXT_PUBLIC_NANGO_PUBLIC_KEY)
 
     # Redis
     redis_url: str = "redis://localhost:6379"
