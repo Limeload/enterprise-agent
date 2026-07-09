@@ -36,19 +36,22 @@ async def _stream_graph(state: AgentState) -> AsyncIterator[str]:
     """Run the LangGraph graph and stream SSE events back to the client."""
     config = {"configurable": {"thread_id": state["session_id"]}}
 
-    async for event in graph.astream_events(state, config=config, version="v2"):
-        kind = event.get("event", "")
+    try:
+        async for event in graph.astream_events(state, config=config, version="v2"):
+            kind = event.get("event", "")
 
-        if kind == "on_chain_start":
-            node = event.get("name", "")
-            yield f"data: {json.dumps({'type': 'node_start', 'node': node})}\n\n"
+            if kind == "on_chain_start":
+                node = event.get("name", "")
+                yield f"data: {json.dumps({'type': 'node_start', 'node': node})}\n\n"
 
-        elif kind == "on_chain_end":
-            node = event.get("name", "")
-            output = event.get("data", {}).get("output", {})
-            if node == "generate_answer":
-                answer = output.get("answer", "") if isinstance(output, dict) else ""
-                yield f"data: {json.dumps({'type': 'answer_chunk', 'content': answer})}\n\n"
+            elif kind == "on_chain_end":
+                node = event.get("name", "")
+                output = event.get("data", {}).get("output", {})
+                if node == "generate_answer":
+                    answer = output.get("answer", "") if isinstance(output, dict) else ""
+                    yield f"data: {json.dumps({'type': 'answer_chunk', 'content': answer})}\n\n"
+    except Exception as exc:
+        yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
 
     # Final metadata event
     yield f"data: {json.dumps({'type': 'done'})}\n\n"

@@ -17,7 +17,6 @@ import {
 import AppNav from "@/components/AppNav"
 import ConnectorIcon from "@/components/ConnectorIcon"
 import { CONNECTOR_META, CONNECTOR_CATEGORIES } from "@/lib/connectors/meta"
-import { connectProvider, isNangoConfigured } from "@/lib/nango"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +26,6 @@ interface ConnectorRow {
   scopes: string[]
   providerAccountEmail: string | null
   providerAccountId: string | null
-  nangoConnectionId: string | null
   lastSyncedAt: string | null
   updatedAt: string
 }
@@ -225,7 +223,6 @@ export default function IntegrationsPage() {
   const [category, setCategory] = useState("All")
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
-  const nangoReady = isNangoConfigured()
   const [approval, setApproval] = useState<{
     provider: string
     action: string
@@ -255,70 +252,70 @@ export default function IntegrationsPage() {
     [category]
   )
 
-  // Generate a stable, unique Nango connection ID for this workspace+user+provider.
-  // In production this should incorporate the workspace ID fetched from the API.
-  const nangoConnectionId = (providerKey: string) =>
-    `braincache_${user?.id ?? "anon"}_${providerKey.toLowerCase()}`
-
   const handleConnect = async (c: (typeof CONNECTOR_META)[number]) => {
     if (!user) return
-
-    // Check Nango is configured before showing busy state
-    if (!isNangoConfigured()) {
-      setNotice({
-        type: "error",
-        text: "Nango is not configured. Add NEXT_PUBLIC_NANGO_PUBLIC_KEY to your .env.local file.",
-      })
-      return
-    }
-
     setBusy(c.key)
     setNotice(null)
+
+    // Step 1: get Composio redirect URL from the backend
+    let redirectUrl: string
+    let connectionId: string
     try {
-      const connectionId = nangoConnectionId(c.key)
-      // nango.auth() opens the OAuth popup — must be the first await in this handler.
-      // If the browser blocks the popup, instruct the user to allow popups.
-      const result = await connectProvider(c.nangoProviderConfigKey, connectionId)
-
-      const res = await fetch(`/api/connectors/${c.key.toLowerCase()}/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nangoConnectionId: result.connectionId,
-          scopes: c.scopes,
-        }),
-      })
-
-      if (res.ok) {
-        setNotice({ type: "success", text: `${c.name} connected successfully.` })
-        await load()
-      } else {
-        setNotice({ type: "error", text: `Failed to save ${c.name} connection.` })
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      // Ignore explicit user cancellations
-      if (msg.includes("cancelled") || msg.includes("user_cancelled") || msg === "window_closed") {
+      const res = await fetch(`/api/connectors/${c.key.toLowerCase()}/initiate`, { method: "POST" })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setNotice({ type: "error", text: `Could not start ${c.name} OAuth: ${(err as { error?: string }).error ?? res.statusText}` })
         setBusy(null)
         return
       }
-      // Surface popup blocking as an actionable message
-      if (msg.includes("blocked") || msg.includes("popup") || msg.includes("window")) {
-        setNotice({
-          type: "error",
-          text: `Popup blocked by browser. Allow popups for this site and try again.`,
-        })
-      } else if (msg === "NANGO_NOT_CONFIGURED") {
-        setNotice({
-          type: "error",
-          text: "Nango is not configured. Add NEXT_PUBLIC_NANGO_PUBLIC_KEY to .env.local.",
-        })
-      } else {
-        setNotice({ type: "error", text: `Could not connect ${c.name}: ${msg}` })
-      }
-    } finally {
+      const data = await res.json()
+      redirectUrl = data.redirectUrl
+      connectionId = data.connectionId
+    } catch {
+      setNotice({ type: "error", text: `Could not reach server to start ${c.name} OAuth.` })
       setBusy(null)
+      return
     }
+
+    // Step 2: optimistically save the pending connection so the callback can match it
+    await fetch(`/api/connectors/${c.key.toLowerCase()}/connect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ composioConnectionId: connectionId }),
+    })
+
+    // Step 3: open Composio's hosted OAuth page in a popup
+    const popup = window.open(redirectUrl, `oauth_${c.key}`, "width=600,height=700,scrollbars=yes")
+
+    if (!popup) {
+      setBusy(null)
+      setNotice({ type: "error", text: "Popup blocked. Allow popups for this site and try again." })
+      return
+    }
+
+    const onMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === "oauth_success") {
+        window.removeEventListener("message", onMessage)
+        setNotice({ type: "success", text: `${c.name} connected successfully.` })
+        await load()
+        setBusy(null)
+      } else if (event.data?.type === "oauth_error") {
+        window.removeEventListener("message", onMessage)
+        setNotice({ type: "error", text: `Could not connect ${c.name}: ${event.data.error}` })
+        setBusy(null)
+      }
+    }
+
+    window.addEventListener("message", onMessage)
+
+    const poll = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(poll)
+        window.removeEventListener("message", onMessage)
+        setBusy(null)
+      }
+    }, 500)
   }
 
   const handleDisconnect = async (key: string) => {
@@ -381,29 +378,6 @@ export default function IntegrationsPage() {
               OAuth — no API keys required.
             </p>
           </div>
-
-          {/* Nango not configured warning */}
-          {!nangoReady && (
-            <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-[13px] text-amber-600">
-              <AlertCircle size={15} className="mt-0.5 shrink-0" />
-              <span>
-                <strong>Nango not configured.</strong> Add{" "}
-                <code className="rounded bg-amber-400/20 px-1 py-0.5 text-[11px]">
-                  NEXT_PUBLIC_NANGO_PUBLIC_KEY
-                </code>{" "}
-                to <code className="rounded bg-amber-400/20 px-1 py-0.5 text-[11px]">.env.local</code> to
-                enable OAuth connections.{" "}
-                <a
-                  href="https://app.nango.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  Get your key at app.nango.dev →
-                </a>
-              </span>
-            </div>
-          )}
 
           {/* Notice banner */}
           {notice && (
@@ -496,11 +470,11 @@ export default function IntegrationsPage() {
             <div className="flex items-start gap-3">
               <ShieldCheck size={16} className="mt-0.5 flex-shrink-0 text-cache-hit" />
               <div>
-                <p className="text-[12px] font-medium text-copy-primary">Secure OAuth via Nango</p>
+                <p className="text-[12px] font-medium text-copy-primary">Secure OAuth</p>
                 <p className="mt-0.5 text-[11px] text-copy-muted">
-                  OAuth credentials are managed by Nango and never stored in BrainCache. Tokens are
-                  refreshed automatically. Write actions (sending emails, creating tickets, posting
-                  messages) always require your explicit approval.
+                  OAuth tokens are encrypted at rest using AES-256-GCM and refreshed automatically.
+                  Write actions (sending emails, creating tickets, posting messages) always require
+                  your explicit approval.
                 </p>
               </div>
             </div>

@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import json
-from anthropic import AsyncAnthropic
 
 from agents.state import AgentState
+from core.llm import generate_text
 from core.config import settings
-
-_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 _SYSTEM = """You are an intent classification engine for an enterprise AI assistant.
 Classify the user query into one of these intents:
@@ -35,7 +33,7 @@ async def classify_intent(state: AgentState) -> AgentState:
         {"role": "user", "content": query},
     ]
 
-    response = await _client.messages.create(
+    text = await generate_text(
         model=settings.llm_model,
         max_tokens=256,
         system=_SYSTEM,
@@ -43,8 +41,8 @@ async def classify_intent(state: AgentState) -> AgentState:
     )
 
     try:
-        parsed = json.loads(response.content[0].text)
-    except (json.JSONDecodeError, IndexError, KeyError):
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
         parsed = {
             "intent": "knowledge_search",
             "sub_intent": "general",

@@ -2,17 +2,30 @@
 from __future__ import annotations
 
 import json
-from anthropic import AsyncAnthropic
+import re
 
 from agents.state import AgentState, Citation
+from core.llm import generate_text
 from core.config import settings
-
-_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 _SYSTEM = """You are an enterprise AI assistant. Synthesize a clear, accurate answer
 from the provided context. Always cite your sources inline using [Source N] notation.
 If the context is insufficient, say so honestly.
 Return a JSON object: {"answer": str, "citations": [{"source": str, "title": str, "url": str, "excerpt": str}]}"""
+
+
+def _parse_json_response(text: str) -> dict | None:
+    candidates = [text]
+    fenced = re.findall(r"```(?:json)?\s*(\{.*\})\s*```", text, flags=re.DOTALL)
+    candidates = fenced + candidates
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 async def generate_answer(state: AgentState) -> AgentState:
@@ -42,19 +55,19 @@ async def generate_answer(state: AgentState) -> AgentState:
 
     prompt = f"Context:\n{context}\n\nUser question: {query}"
 
-    response = await _client.messages.create(
+    text = await generate_text(
         model=settings.llm_model,
         max_tokens=1024,
         system=_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
     )
 
-    try:
-        parsed = json.loads(response.content[0].text)
+    parsed = _parse_json_response(text)
+    if parsed:
         answer = parsed.get("answer", "")
         citations: list[Citation] = parsed.get("citations", [])
-    except (json.JSONDecodeError, IndexError, KeyError):
-        answer = response.content[0].text if response.content else "Unable to generate answer."
+    else:
+        answer = re.split(r"```(?:json)?", text, maxsplit=1)[0].strip() or text or "Unable to generate answer."
         citations = []
 
     return {**state, "answer": answer, "citations": citations}

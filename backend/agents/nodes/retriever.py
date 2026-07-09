@@ -15,12 +15,15 @@ async def _fetch_from_source(
     source: str,
     query: str,
     entities: dict[str, Any],
+    user_id: str | None = None,
     limit: int = 5,
 ) -> list[RetrievedDoc]:
     try:
-        connector = get_connector(source)
+        connector = await get_connector(source, user_id=user_id)
         if connector is None:
             return []
+        if source == "gmail" and any(term in query.lower() for term in ("how many", "count", "rejection", "rejected")):
+            limit = max(limit, 50)
         docs = await connector.search(query=query, entities=entities, limit=limit)
         # Mask PII before the docs go into context
         for doc in docs:
@@ -34,9 +37,10 @@ async def retrieve(state: AgentState) -> AgentState:
     query = state["query"]
     sources = state.get("selected_sources", [])
     entities = state.get("entities", {})
+    user_id = state.get("user_id")
 
     tasks = [
-        _fetch_from_source(source, query, entities)
+        _fetch_from_source(source, query, entities, user_id=user_id)
         for source in sources
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)

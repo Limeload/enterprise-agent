@@ -100,8 +100,7 @@ model Connector {
   provider             ConnectorProvider
   status               ConnectorStatus   @default(DISCONNECTED)
   scopes               String[]
-  // Nango stores OAuth tokens — BrainCache only stores the connection reference
-  nangoConnectionId    String?
+  composioConnectionId String?
   providerAccountId    String?
   providerAccountEmail String?
   lastSyncedAt         DateTime?
@@ -110,6 +109,7 @@ model Connector {
 
   @@unique([workspaceId, provider])
 }
+
 
 model AuditLog {
   id          String    @id @default(cuid())

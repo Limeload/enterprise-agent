@@ -9,8 +9,6 @@ export interface ConnectorMeta {
   abbr: string
   category: string
   description: string
-  /** Nango provider config key — matches the integration name in your Nango dashboard. */
-  nangoProviderConfigKey: string
   /** Scopes requested during OAuth — displayed to the user before connecting. */
   scopes: string[]
   /** Whether this connector supports write operations (requires human approval). */
@@ -27,7 +25,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "Gm",
     category: "Communication",
     description: "Search emails, summarize conversations, draft responses.",
-    nangoProviderConfigKey: "google-mail",
     scopes: ["Read Email", "Search Email"],
     hasWriteActions: true,
   },
@@ -40,7 +37,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "GD",
     category: "Knowledge",
     description: "Index documents, search files, read selected documents.",
-    nangoProviderConfigKey: "google-drive",
     scopes: ["Read Files", "Search Files"],
     hasWriteActions: false,
   },
@@ -53,7 +49,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "GC",
     category: "Productivity",
     description: "Read calendar events, check availability, and schedules.",
-    nangoProviderConfigKey: "google-calendar",
     scopes: ["Read Events"],
     hasWriteActions: false,
   },
@@ -66,7 +61,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "Sl",
     category: "Communication",
     description: "Search channels and messages. Post messages with approval.",
-    nangoProviderConfigKey: "slack",
     scopes: ["Read Messages", "Search Messages"],
     hasWriteActions: true,
   },
@@ -79,7 +73,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "GH",
     category: "Engineering",
     description: "Read repositories, PRs, and issues. Create issues with approval.",
-    nangoProviderConfigKey: "github",
     scopes: ["Read Repositories", "Read Issues", "Read PRs"],
     hasWriteActions: true,
   },
@@ -92,7 +85,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "Ji",
     category: "Engineering",
     description: "Search tickets and sprints. Create and update tickets with approval.",
-    nangoProviderConfigKey: "jira",
     scopes: ["Read Issues", "Search Issues"],
     hasWriteActions: true,
   },
@@ -105,7 +97,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "No",
     category: "Knowledge",
     description: "Read pages, databases, and docs from your workspace.",
-    nangoProviderConfigKey: "notion",
     scopes: ["Read Pages", "Search Content"],
     hasWriteActions: false,
   },
@@ -118,7 +109,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "Cf",
     category: "Knowledge",
     description: "Read spaces, pages, and documentation.",
-    nangoProviderConfigKey: "confluence",
     scopes: ["Read Pages", "Read Spaces"],
     hasWriteActions: false,
   },
@@ -131,7 +121,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "SF",
     category: "CRM",
     description: "Search and read CRM records, accounts, and opportunities.",
-    nangoProviderConfigKey: "salesforce",
     scopes: ["Read CRM Records", "Search Records"],
     hasWriteActions: false,
   },
@@ -144,7 +133,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "HS",
     category: "CRM",
     description: "Read contacts, deals, and companies from HubSpot.",
-    nangoProviderConfigKey: "hubspot",
     scopes: ["Read Contacts", "Read Deals"],
     hasWriteActions: false,
   },
@@ -157,7 +145,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "Zd",
     category: "CRM",
     description: "Read tickets and customer conversations.",
-    nangoProviderConfigKey: "zendesk",
     scopes: ["Read Tickets", "Search Tickets"],
     hasWriteActions: false,
   },
@@ -170,7 +157,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "MS",
     category: "Communication",
     description: "Search teams, channels, and chat messages.",
-    nangoProviderConfigKey: "microsoft-teams",
     scopes: ["Read Messages", "Read Channels"],
     hasWriteActions: true,
   },
@@ -183,7 +169,6 @@ export const CONNECTOR_META: ConnectorMeta[] = [
     abbr: "OD",
     category: "Knowledge",
     description: "Search and read files from OneDrive.",
-    nangoProviderConfigKey: "microsoft-onedrive",
     scopes: ["Read Files", "Search Files"],
     hasWriteActions: false,
   },

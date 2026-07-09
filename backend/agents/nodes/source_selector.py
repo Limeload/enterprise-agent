@@ -36,6 +36,7 @@ async def select_sources(state: AgentState) -> AgentState:
     intent = state.get("intent", "knowledge_search")
     sub_intent = state.get("sub_intent", "")
     entities = state.get("entities", {})
+    query = state.get("query", "").lower()
 
     # Sub-intent override takes priority
     if sub_intent in _SUB_INTENT_OVERRIDES:
@@ -46,5 +47,9 @@ async def select_sources(state: AgentState) -> AgentState:
     # If a specific repo is mentioned, ensure github is included
     if "repo" in entities and "github" not in sources:
         sources.insert(0, "github")
+
+    email_terms = ("email", "mail", "gmail", "inbox", "rejection", "rejected", "application")
+    if any(term in query for term in email_terms) and "gmail" not in sources:
+        sources.insert(0, "gmail")
 
     return {**state, "selected_sources": sources}

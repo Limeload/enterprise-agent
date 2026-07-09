@@ -87,6 +87,13 @@ export default function ChatInterface() {
                 updateLastAssistant((m) => ({ ...m, citations: event.citations ?? [] }));
               } else if (event.type === "metadata") {
                 updateLastAssistant((m) => ({ ...m, intent: event.intent, sources: event.sources_used }));
+              } else if (event.type === "error") {
+                updateLastAssistant((m) => ({
+                  ...m,
+                  content: event.message ?? "Something went wrong. Please try again.",
+                  isStreaming: false,
+                  activeNode: null,
+                }));
               }
             } catch { /* non-JSON line */ }
           }

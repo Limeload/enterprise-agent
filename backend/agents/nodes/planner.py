@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import json
-from anthropic import AsyncAnthropic
 
 from agents.state import AgentState
+from core.llm import generate_text
 from core.config import settings
-
-_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 _SYSTEM = """You are a planning agent for an enterprise AI assistant.
 Given the user's intent, sub-intent, entities, and retrieved context snippets,
@@ -49,7 +47,7 @@ async def plan(state: AgentState) -> AgentState:
         "Produce the execution plan."
     )
 
-    response = await _client.messages.create(
+    text = await generate_text(
         model=settings.llm_model,
         max_tokens=512,
         system=_SYSTEM,
@@ -57,10 +55,10 @@ async def plan(state: AgentState) -> AgentState:
     )
 
     try:
-        steps = json.loads(response.content[0].text)
+        steps = json.loads(text)
         if not isinstance(steps, list):
             raise ValueError
-    except (json.JSONDecodeError, ValueError, IndexError):
+    except (json.JSONDecodeError, ValueError):
         steps = [{"step": 1, "tool": "synthesize_answer", "args": {}, "description": "Generate answer from context"}]
 
     # Flag write actions for human approval

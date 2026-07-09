@@ -1,7 +1,7 @@
 """FastAPI dependency injection helpers."""
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from core.config import settings
@@ -17,11 +17,19 @@ bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> User:
     """Extract and validate the bearer token (Supabase session, or internal JWT), return the User."""
     if credentials is None:
         if settings.app_env == "development":
+            forwarded_user_id = request.headers.get("x-user-id")
+            if forwarded_user_id:
+                return User(
+                    user_id=forwarded_user_id,
+                    email=request.headers.get("x-user-email", f"{forwarded_user_id}@clerk.local"),
+                    role=Role.ADMIN,
+                )
             # Dev convenience: return a mock admin when no token is provided
             return User(user_id="dev-user", email="dev@company.com", role=Role.ADMIN)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials")

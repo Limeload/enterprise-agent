@@ -1,18 +1,16 @@
-"""Connector registry — resolves per-user connector instances using Nango tokens.
+"""Connector registry — resolves per-user connector instances via Composio.
 
-Every connector that requires OAuth is resolved dynamically at request time:
-1. Look up the user's Nango connection ID from the DB.
-2. Fetch a fresh access token from Nango (Nango handles refresh automatically).
-3. Instantiate the connector class with that token.
-
-This means BrainCache never stores raw OAuth credentials — only Nango connection IDs.
+For each OAuth-backed connector, pass the Composio connection ID; the registry
+fetches a fresh access token from Composio and instantiates the connector class.
 """
 from __future__ import annotations
 
-from connectors.base import BaseConnector
+import asyncpg
 
-# All sources that support a real Nango-backed OAuth implementation.
-NANGO_CAPABLE_SOURCES = (
+from connectors.base import BaseConnector
+from core.config import settings
+
+COMPOSIO_CAPABLE_SOURCES: tuple[str, ...] = (
     "gmail",
     "google_drive",
     "google_calendar",
@@ -104,28 +102,79 @@ def _stub_registry() -> dict[str, BaseConnector]:
     }
 
 
-async def get_connector(name: str, user_id: str | None = None) -> BaseConnector | None:
-    """Resolve a connector instance for the given user.
+def _provider_key(name: str) -> str:
+    return {
+        "gmail": "GMAIL",
+        "google_drive": "GOOGLE_DRIVE",
+        "google_calendar": "GOOGLE_CALENDAR",
+        "microsoft_teams": "MICROSOFT_TEAMS",
+        "onedrive": "ONEDRIVE",
+    }.get(name, name.upper())
 
-    For Nango-capable connectors, fetches a fresh token from Nango using the
-    user's stored connection ID. Falls back to stub connectors for sources not
-    yet implemented or when the user has no active connection.
-    """
-    if user_id and name in NANGO_CAPABLE_SOURCES:
-        from db.connections import get_connection
-        from integrations import nango_client
 
-        record = get_connection(user_id, name)
-        if record and record.get("status") == "connected" and record.get("nango_connection_id"):
-            token = await nango_client.get_token(name, record["nango_connection_id"])
+async def _lookup_composio_connection_id(name: str, user_id: str | None) -> str | None:
+    if not settings.database_url:
+        return None
+
+    provider = _provider_key(name)
+    conn = await asyncpg.connect(settings.database_url)
+    try:
+        if user_id:
+            row = await conn.fetchrow(
+                """
+                SELECT "composioConnectionId"
+                FROM "Connector"
+                WHERE "provider" = $1
+                  AND "status" = 'CONNECTED'
+                  AND "userId" = $2
+                  AND "composioConnectionId" IS NOT NULL
+                ORDER BY "updatedAt" DESC
+                LIMIT 1
+                """,
+                provider,
+                user_id,
+            )
+            if row:
+                return row["composioConnectionId"]
+
+        if settings.app_env == "development":
+            row = await conn.fetchrow(
+                """
+                SELECT "composioConnectionId"
+                FROM "Connector"
+                WHERE "provider" = $1
+                  AND "status" = 'CONNECTED'
+                  AND "composioConnectionId" IS NOT NULL
+                ORDER BY "updatedAt" DESC
+                LIMIT 1
+                """,
+                provider,
+            )
+            if row:
+                return row["composioConnectionId"]
+    finally:
+        await conn.close()
+
+    return None
+
+
+async def get_connector(name: str, user_id: str | None = None, composio_connection_id: str | None = None) -> BaseConnector | None:
+    if not composio_connection_id and name in COMPOSIO_CAPABLE_SOURCES:
+        composio_connection_id = await _lookup_composio_connection_id(name, user_id)
+
+    if composio_connection_id and name in COMPOSIO_CAPABLE_SOURCES:
+        from integrations.composio_client import get_token
+
+        token = get_token(composio_connection_id)
+        connector_cls = _connector_classes().get(name)
+        if connector_cls:
             if token:
-                connector_cls = _connector_classes().get(name)
-                if connector_cls:
-                    return connector_cls(token=token)
+                return connector_cls(token=token)
+            if name == "gmail":
+                return connector_cls(composio_connection_id=composio_connection_id)
 
     return _stub_registry().get(name)
 
 
 def list_connectors() -> list[str]:
-    """All known connector source names for the integrations UI and default search scope."""
     return list(ALL_SOURCE_NAMES)

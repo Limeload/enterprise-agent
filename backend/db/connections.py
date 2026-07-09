@@ -1,4 +1,4 @@
-"""CRUD helpers for per-user connections — routes between Supabase and local SQLite."""
+"""CRUD helpers for per-user connections (legacy — used by non-connector routes)."""
 from __future__ import annotations
 
 from typing import Any
@@ -32,42 +32,6 @@ def get_connection(user_id: str, source: str) -> dict[str, Any] | None:
     )
     rows = resp.data or []
     return rows[0] if rows else None
-
-
-def get_connection_by_nango_id(nango_connection_id: str) -> dict[str, Any] | None:
-    if _use_local():
-        return _local.get_connection_by_nango_id(nango_connection_id)
-    resp = (
-        get_supabase()
-        .table("user_connections")
-        .select("*")
-        .eq("nango_connection_id", nango_connection_id)
-        .limit(1)
-        .execute()
-    )
-    rows = resp.data or []
-    return rows[0] if rows else None
-
-
-def upsert_connection(
-    user_id: str,
-    source: str,
-    status: str,
-    nango_connection_id: str | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    if _use_local():
-        return _local.upsert_connection(user_id, source, status, nango_connection_id, metadata)
-    row = {
-        "user_id": user_id,
-        "source": source,
-        "status": status,
-        "nango_connection_id": nango_connection_id,
-        "metadata": metadata or {},
-    }
-    resp = get_supabase().table("user_connections").upsert(row, on_conflict="user_id,source").execute()
-    data = resp.data or [row]
-    return data[0]
 
 
 def delete_connection(user_id: str, source: str) -> None:

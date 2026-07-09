@@ -16,7 +16,6 @@ export async function GET() {
       provider: true,
       status: true,
       scopes: true,
-      nangoConnectionId: true,
       providerAccountEmail: true,
       providerAccountId: true,
       lastSyncedAt: true,

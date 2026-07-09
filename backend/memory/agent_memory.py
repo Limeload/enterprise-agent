@@ -1,9 +1,12 @@
 """Per-user agent memory: episodic, semantic, and preference layers."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from db.supabase import get_supabase
+
+_local_memory: list[dict[str, Any]] = []
 
 
 class AgentMemory:
@@ -20,6 +23,17 @@ class AgentMemory:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         db = get_supabase()
+        if db is None:
+            _local_memory.append({
+                "user_id": self.user_id,
+                "session_id": session_id,
+                "memory_type": memory_type,
+                "content": content,
+                "metadata": metadata or {},
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            return
+
         db.table("agent_memory").insert({
             "user_id":     self.user_id,
             "session_id":  session_id,
@@ -35,6 +49,14 @@ class AgentMemory:
         session_id: str | None = None,
     ) -> list[dict[str, Any]]:
         db = get_supabase()
+        if db is None:
+            memories = [m for m in _local_memory if m["user_id"] == self.user_id]
+            if memory_type:
+                memories = [m for m in memories if m["memory_type"] == memory_type]
+            if session_id:
+                memories = [m for m in memories if m["session_id"] == session_id]
+            return sorted(memories, key=lambda m: m["created_at"], reverse=True)[:limit]
+
         query = (
             db.table("agent_memory")
             .select("*")

@@ -29,12 +29,11 @@ def init_db() -> None:
                 created_at TEXT DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS user_connections (
-                user_id              TEXT NOT NULL,
-                source               TEXT NOT NULL,
-                status               TEXT NOT NULL,
-                nango_connection_id  TEXT,
-                metadata             TEXT DEFAULT '{}',
-                updated_at           TEXT DEFAULT (datetime('now')),
+                user_id    TEXT NOT NULL,
+                source     TEXT NOT NULL,
+                status     TEXT NOT NULL,
+                metadata   TEXT DEFAULT '{}',
+                updated_at TEXT DEFAULT (datetime('now')),
                 PRIMARY KEY (user_id, source)
             );
         """)
@@ -66,7 +65,7 @@ def get_user_by_id(user_id: str) -> dict[str, Any] | None:
 
 
 # ---------------------------------------------------------------------------
-# Connection CRUD (mirrors db/connections.py interface)
+# Connection CRUD
 # ---------------------------------------------------------------------------
 
 def list_connections(user_id: str) -> list[dict[str, Any]]:
@@ -83,46 +82,6 @@ def get_connection(user_id: str, source: str) -> dict[str, Any] | None:
             "SELECT * FROM user_connections WHERE user_id=? AND source=?", (user_id, source)
         ).fetchone()
     return _row_to_dict(row) if row else None
-
-
-def get_connection_by_nango_id(nango_connection_id: str) -> dict[str, Any] | None:
-    with _lock, _conn() as con:
-        row = con.execute(
-            "SELECT * FROM user_connections WHERE nango_connection_id=?",
-            (nango_connection_id,),
-        ).fetchone()
-    return _row_to_dict(row) if row else None
-
-
-def upsert_connection(
-    user_id: str,
-    source: str,
-    status: str,
-    nango_connection_id: str | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    row = {
-        "user_id": user_id,
-        "source": source,
-        "status": status,
-        "nango_connection_id": nango_connection_id,
-        "metadata": json.dumps(metadata or {}),
-    }
-    with _lock, _conn() as con:
-        con.execute(
-            """
-            INSERT INTO user_connections
-                (user_id, source, status, nango_connection_id, metadata)
-            VALUES (:user_id, :source, :status, :nango_connection_id, :metadata)
-            ON CONFLICT(user_id, source) DO UPDATE SET
-                status=excluded.status,
-                nango_connection_id=excluded.nango_connection_id,
-                metadata=excluded.metadata,
-                updated_at=datetime('now')
-            """,
-            row,
-        )
-    return {**row, "metadata": metadata or {}}
 
 
 def delete_connection(user_id: str, source: str) -> None:
